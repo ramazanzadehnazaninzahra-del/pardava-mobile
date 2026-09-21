@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Allow cleartext to the local dev backend (10.0.2.2 = host loopback in the emulator).
-         Production endpoints over HTTPS are unaffected. -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">10.0.2.2</domain>
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">127.0.0.1</domain>
-    </domain-config>
-    <base-config cleartextTrafficPermitted="false" />
+    <!-- v0.4.1: cleartext is allowed app-wide so the installable demo can reach the
+         self-hosted FastAPI backend over plain HTTP on a LAN (e.g. http://192.168.x.x:8100).
+         HTTPS endpoints are unaffected and remain the recommended production setup. -->
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
