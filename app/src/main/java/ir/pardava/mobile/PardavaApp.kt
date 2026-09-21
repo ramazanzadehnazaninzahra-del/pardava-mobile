@@ -4,13 +4,12 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import ir.pardava.mobile.core.ApiClient
+import ir.pardava.mobile.core.BuildConfigDefault
 import ir.pardava.mobile.core.SessionManager
 import ir.pardava.mobile.core.TokenStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PardavaApp : Application() {
@@ -20,19 +19,14 @@ class PardavaApp : Application() {
     lateinit var api: ApiClient
         private set
 
-    /** One-time link code coming back from the Google OAuth deep link. */
-    val googleLinkCode = MutableStateFlow<String?>(null)
-
-    /** Error code coming back from the Google OAuth deep link (e.g. google_state_invalid). */
-    val googleLinkError = MutableStateFlow<String?>(null)
-
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
         super.onCreate()
         val store = TokenStore(this)
-        // Wire BuildConfig default through the indirection object (test-friendly).
-        ir.pardava.mobile.core.BuildConfigDefault.url = BuildConfig.DEFAULT_BASE_URL
+        // Wire BuildConfig defaults through the indirection object (test-friendly).
+        BuildConfigDefault.url = BuildConfig.DEFAULT_BASE_URL
+        BuildConfigDefault.googleClientId = BuildConfig.GOOGLE_CLIENT_ID
         session = SessionManager(store, appScope)
         api = ApiClient(session, store, debugLogging = BuildConfig.DEBUG)
         appScope.launch { session.restore() }
@@ -49,7 +43,6 @@ class PardavaApp : Application() {
     fun setAppLanguage(lang: String) {
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))
         api.acceptLanguage = lang
-        appScope.launch { runCatching { api.setLanguage(lang) } }
     }
 
     fun currentLanguage(): String =

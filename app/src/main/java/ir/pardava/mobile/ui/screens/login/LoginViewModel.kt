@@ -3,92 +3,91 @@ package ir.pardava.mobile.ui.screens.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ir.pardava.mobile.core.ApiClient
+import ir.pardava.mobile.core.apiCall
+import ir.pardava.mobile.data.dto.MessageOut
 import ir.pardava.mobile.data.dto.OtpRequestIn
 import ir.pardava.mobile.data.dto.OtpVerifyIn
-import ir.pardava.mobile.data.dto.OtpRequestOut
+import ir.pardava.mobile.data.dto.TokenOut
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-sealed interface LoginState {
-    data object PhoneEntry : LoginState
-    data class CodeEntry(val phone: String, val devCode: String?, val expiresIn: Int) : LoginState
-    data object Submitting : LoginState
-    data class Failure(val message: String) : LoginState
-}
-
+/** One login screen, four methods: password · OTP · Gmail · app token. */
 class LoginViewModel(private val client: ApiClient) : ViewModel() {
 
-    private val _state = MutableStateFlow<LoginState>(LoginState.PhoneEntry)
-    val state: StateFlow<LoginState> = _state
+    private val _busy = MutableStateFlow(false)
+    val busy: StateFlow<Boolean> = _busy
 
-    fun requestOtp(phone: String, onInvalidPhone: () -> Unit) {
-        val normalized = phone.trim()
-        if (!normalized.any { it.isDigit() } || normalized.length < 8) {
-            onInvalidPhone()
-            return
-        }
-        _state.value = LoginState.Submitting
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
+    /** Set after POST /auth/otp/request succeeded. */
+    private val _otpSentTo = MutableStateFlow<String?>(null)
+    val otpSentTo: StateFlow<String?> = _otpSentTo
+
+    fun consumeError() {
+        _error.value = null
+    }
+
+    private fun <T> run(block: suspend () -> T, onSuccess: (T) -> Unit) {
         viewModelScope.launch {
+            _busy.value = true
+            _error.value = null
             try {
-                val out: OtpRequestOut = client.api().otpRequest(OtpRequestIn(normalized))
-                _state.value = LoginState.CodeEntry(normalized, out.dev_code, out.expires_in)
+                onSuccess(block())
             } catch (e: Exception) {
-                _state.value = LoginState.Failure(e.message ?: "network error")
+                _error.value = e.message ?: "error"
+            } finally {
+                _busy.value = false
             }
         }
     }
 
-    fun verifyOtp(code: String, lang: String, onSuccess: () -> Unit) {
-        val current = _state.value as? LoginState.CodeEntry ?: return
-        _state.value = LoginState.Submitting
-        viewModelScope.launch {
-            try {
-                val tokens = client.api().otpVerify(OtpVerifyIn(current.phone, code.trim(), device = "android"))
-                client.session.save(tokens.access_token, tokens.refresh_token, tokens.user.id)
-                onSuccess()
-            } catch (e: ir.pardava.mobile.core.ApiException) {
-                _state.value = LoginState.Failure(e.error.message(lang))
-            } catch (e: Exception) {
-                _state.value = LoginState.Failure(e.message ?: "network error")
-            }
-        }
+    fun loginWithPassword(username: String, password: String, onDone: () -> Unit) {
+        run({
+            val out: TokenOut = apiCall { client.api().login(ir.pardava.mobile.data.dto.LoginIn(username, password)) }
+            client.saveLogin(out.token, out.user)
+            out
+        }, { onDone() })
     }
 
-    fun googleSignIn(idToken: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        _state.value = LoginState.Submitting
-        viewModelScope.launch {
-            try {
-                val tokens = client.api().googleLogin(ir.pardava.mobile.data.dto.GoogleLoginIn(idToken, device = "android"))
-                client.session.save(tokens.access_token, tokens.refresh_token, tokens.user.id)
-                onSuccess()
-            } catch (e: Exception) {
-                onError(e.message ?: "google sign-in failed")
-            }
-        }
+    fun requestOtp(phone: String) {
+        run({
+            val out: MessageOut = apiCall { client.api().otpRequest(OtpRequestIn(phone)) }
+            out
+        }, { _otpSentTo.value = phone })
     }
 
-    /** Browser-flow Google sign-in: swap the one-time deep-link code for JWTs. */
-    fun exchangeGoogleCode(code: String, lang: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        _state.value = LoginState.Submitting
-        viewModelScope.launch {
-            try {
-                val tokens = client.api().googleExchange(
-                    ir.pardava.mobile.data.dto.GoogleExchangeIn(code, device = "android")
-                )
-                client.session.save(tokens.access_token, tokens.refresh_token, tokens.user.id)
-                onSuccess()
-            } catch (e: ir.pardava.mobile.core.ApiException) {
-                _state.value = LoginState.PhoneEntry
-                onError(e.error.message(lang))
-            } catch (e: Exception) {
-                _state.value = LoginState.PhoneEntry
-                onError(e.message ?: "google sign-in failed")
-            }
-        }
+    fun verifyOtp(phone: String, code: String, onDone: () -> Unit) {
+        run({
+            val out: TokenOut = apiCall { client.api().otpVerify(OtpVerifyIn(phone, code)) }
+            client.saveLogin(out.token, out.user)
+            out
+        }, { onDone() })
     }
 
-    fun backToPhone() {
-        _state.value = LoginState.PhoneEntry
+    /** Exchange a Google ID token for a Pardava session token. */
+    fun loginWithGoogleIdToken(idToken: String, onDone: () -> Unit) {
+        run({
+            val out: TokenOut = apiCall { client.api().googleLogin(ir.pardava.mobile.data.dto.GoogleIn(idToken)) }
+            client.saveLogin(out.token, out.user)
+            out
+        }, { onDone() })
+    }
+
+    /** Validate a token pasted from the website profile page. */
+    fun loginWithToken(raw: String, onDone: () -> Unit) {
+        run({
+            client.signInWithToken(raw)
+        }, { onDone() })
+    }
+
+    fun resetOtp() {
+        _otpSentTo.value = null
+    }
+
+    /** Surface a Google sign-in failure as a regular inline error. */
+    fun reportGoogleError(message: String) {
+        _error.value = message
     }
 }

@@ -27,11 +27,15 @@ android {
         applicationId = "ir.pardava.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.4.2"
+        versionCode = 4
+        versionName = "0.5.0"
         vectorDrawables { useSupportLibrary = true }
-        // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://lms.pardava.ir/
-        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "http://10.0.2.2:8100/"}\"")
+        // Site Courses API prefix. Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://example.com/api/courses
+        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "https://pardava.ir/api/courses/"}\"")
+        // Gmail sign-in (Credential Manager): Web client ID from the Google Cloud
+        // project of pardava.ir. Empty default → the Gmail tab shows setup help and
+        // users fall back to the app-token tab. Override with -PpardavaGoogleClientId=…
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${project.findProperty("pardavaGoogleClientId") ?: ""}\"")
     }
 
     signingConfigs {
