@@ -9,6 +9,8 @@ import ir.pardava.mobile.core.TokenStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PardavaApp : Application() {
@@ -17,6 +19,12 @@ class PardavaApp : Application() {
         private set
     lateinit var api: ApiClient
         private set
+
+    /** One-time link code coming back from the Google OAuth deep link. */
+    val googleLinkCode = MutableStateFlow<String?>(null)
+
+    /** Error code coming back from the Google OAuth deep link (e.g. google_state_invalid). */
+    val googleLinkError = MutableStateFlow<String?>(null)
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

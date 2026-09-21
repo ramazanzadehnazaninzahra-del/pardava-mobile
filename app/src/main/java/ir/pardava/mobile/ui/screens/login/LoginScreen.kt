@@ -1,5 +1,7 @@
 package ir.pardava.mobile.ui.screens.login
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -62,6 +64,29 @@ fun LoginScreen(app: PardavaApp, onSignedIn: () -> Unit) {
 
     LaunchedEffect(state) {
         if (state is LoginState.CodeEntry) code = ""
+    }
+
+    // Browser-flow Google sign-in: the backend deep-links back with a one-time code.
+    LaunchedEffect(Unit) {
+        app.googleLinkCode.collect { code2 ->
+            if (code2 != null && state !is LoginState.Submitting) {
+                app.googleLinkCode.value = null
+                vm.exchangeGoogleCode(
+                    code2,
+                    lang,
+                    onSuccess = { onSignedIn() },
+                    onError = { googleMsg = it },
+                )
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        app.googleLinkError.collect { err ->
+            if (err != null) {
+                app.googleLinkError.value = null
+                googleMsg = context.getString(R.string.google_link_failed)
+            }
+        }
     }
 
     Column(
@@ -201,7 +226,14 @@ fun LoginScreen(app: PardavaApp, onSignedIn: () -> Unit) {
 
         Spacer(Modifier.height(24.dp))
         OutlinedButton(
-            onClick = { googleMsg = context.getString(R.string.google_not_configured) },
+            onClick = {
+                googleMsg = null
+                val url = app.session.baseUrl + "api/v1/auth/google/authorize"
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }.onFailure { googleMsg = context.getString(R.string.google_open_failed) }
+            },
+            enabled = state !is LoginState.Submitting,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.google_sign_in))

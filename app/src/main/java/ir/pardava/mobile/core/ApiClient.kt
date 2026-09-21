@@ -90,24 +90,49 @@ class ApiClient(
         }
     }.getOrNull()
 
-    private val api: PardavaApi by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = if (debugLogging) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+    private val apiLock = Any()
+
+    @Volatile
+    private var apiInstance: PardavaApi? = null
+
+    @Volatile
+    private var apiBaseUrl: String? = null
+
+    /**
+     * Retrofit instance, rebuilt lazily whenever [SessionManager.baseUrl] changes
+     * (server-address setting on the login screen). All traffic goes through [api].
+     */
+    private val api: PardavaApi
+        get() {
+            val url = session.baseUrl
+            var inst = apiInstance
+            if (inst == null || apiBaseUrl != url) {
+                synchronized(apiLock) {
+                    inst = apiInstance
+                    if (inst == null || apiBaseUrl != url) {
+                        val logging = HttpLoggingInterceptor().apply {
+                            level = if (debugLogging) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                        }
+                        val ok = OkHttpClient.Builder()
+                            .connectTimeout(15, TimeUnit.SECONDS)
+                            .readTimeout(30, TimeUnit.SECONDS)
+                            .addInterceptor(headerInterceptor())
+                            .addInterceptor(logging)
+                            .authenticator(authenticator)
+                            .build()
+                        inst = Retrofit.Builder()
+                            .baseUrl(url)
+                            .client(ok)
+                            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+                            .build()
+                            .create(PardavaApi::class.java)
+                        apiBaseUrl = url
+                        apiInstance = inst
+                    }
+                }
+            }
+            return inst!!
         }
-        val ok = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor(headerInterceptor())
-            .addInterceptor(logging)
-            .authenticator(authenticator)
-            .build()
-        Retrofit.Builder()
-            .baseUrl(session.baseUrl)
-            .client(ok)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(PardavaApi::class.java)
-    }
 
     private fun headerInterceptor() = Interceptor { chain ->
         val builder = chain.request().newBuilder()
@@ -200,6 +225,13 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
         store.clear()
         access = null
         refresh = null
+    }
+
+    /** Runtime server switching (login screen) — memory + DataStore, instant. */
+    suspend fun setBaseUrl(url: String) {
+        val normalized = url.trim().trimEnd('/') + "/"
+        store.setBaseUrl(normalized)
+        baseUrl = normalized
     }
 
     val isSignedIn: Boolean get() = refresh != null

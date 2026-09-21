@@ -68,6 +68,26 @@ class LoginViewModel(private val client: ApiClient) : ViewModel() {
         }
     }
 
+    /** Browser-flow Google sign-in: swap the one-time deep-link code for JWTs. */
+    fun exchangeGoogleCode(code: String, lang: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        _state.value = LoginState.Submitting
+        viewModelScope.launch {
+            try {
+                val tokens = client.api().googleExchange(
+                    ir.pardava.mobile.data.dto.GoogleExchangeIn(code, device = "android")
+                )
+                client.session.save(tokens.access_token, tokens.refresh_token, tokens.user.id)
+                onSuccess()
+            } catch (e: ir.pardava.mobile.core.ApiException) {
+                _state.value = LoginState.PhoneEntry
+                onError(e.error.message(lang))
+            } catch (e: Exception) {
+                _state.value = LoginState.PhoneEntry
+                onError(e.message ?: "google sign-in failed")
+            }
+        }
+    }
+
     fun backToPhone() {
         _state.value = LoginState.PhoneEntry
     }
