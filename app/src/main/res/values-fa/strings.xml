@@ -33,6 +33,11 @@
     <string name="invalid_phone">لطفاً یک شمارهٔ موبایل معتبر وارد کنید.</string>
     <string name="invalid_code">لطفاً کد ۶ رقمی را وارد کنید.</string>
     <string name="edit_number">اصلاح شماره</string>
+    <string name="server_settings">آدرس سرور</string>
+    <string name="server_url_label">نشانی پایه (http://…)</string>
+    <string name="server_url_save">ذخیرهٔ آدرس سرور</string>
+    <string name="server_url_saved">آدرس سرور ذخیره شد</string>
+    <string name="server_url_invalid">نشانی باید با http:// یا https:// شروع شود</string>
 
     <!-- Bottom nav -->
     <string name="nav_courses">دوره‌ها</string>

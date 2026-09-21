@@ -34,6 +34,11 @@
     <string name="invalid_phone">Please enter a valid mobile number.</string>
     <string name="invalid_code">Please enter the 6-digit code.</string>
     <string name="edit_number">Edit number</string>
+    <string name="server_settings">Server address</string>
+    <string name="server_url_label">Base URL (http://…)</string>
+    <string name="server_url_save">Save server address</string>
+    <string name="server_url_saved">Server address saved</string>
+    <string name="server_url_invalid">The URL must start with http:// or https://</string>
 
     <!-- Bottom nav -->
     <string name="nav_courses">Courses</string>
