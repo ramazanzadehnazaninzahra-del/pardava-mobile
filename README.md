@@ -37,11 +37,26 @@ app/src/main/java/ir/pardava/mobile/
 - بدون DI framework (سیم‌کشی دستی ساده) — مناسب ریپوی کوچک و قابل فهم
 - قفل ترتیبی، نمره‌دهی، XP و همهٔ منطق‌های حساس **صرفاً سمت سرور** است؛ اپ فقط نمایش می‌دهد
 
+## نصب نسخهٔ آماده (APK)
+
+فایل `Pardava-v0.4.1-release.apk` امضاشده‌شده است و روی هر گوشی اندروید ۷ به بالا نصب می‌شود:
+
+1. فایل را به گوشی منتقل کنید و بازش کنید؛ در پیام «نصب از منابع ناشناس» اجازهٔ نصب را بدهید.
+2. در اولین اجرا روی صفحهٔ ورود دکمهٔ **«آدرس سرور»** را بزنید و نشانی بک‌اند را وارد کنید
+   (مثال شبکهٔ محلی: `http://192.168.1.10:8100/` — برای امنیت کامل در اینترنت از HTTPS استفاده کنید).
+3. شمارهٔ موبایل را وارد کنید؛ در حالت dev سرور، کد تأیید (OTP) در پاسخِ `dev_code` نمایش داده می‌شود.
+
+> **امضای ریلیز**: فایل `keystore.properties` (gitignored) حاوی مسیر/رمز keystore است؛
+> `pardava-release.keystore` را مثل رمز عبور نگه دارید — بدون آن به‌روزرسانی با همان امضا ممکن نیست.
+
 ## ساخت
 
 ```bash
 # وابستگی‌ها فقط از Maven Central و Google — پروژه به‌صورت پیش‌فرض بدون Firebase هم build می‌شود
 ./gradlew assembleDebug
+
+# نسخهٔ ریلیز (اگر keystore.properties موجود باشد، امضاشده ساخته می‌شود)
+./gradlew assembleRelease
 
 # تست‌های واحد JVM
 ./gradlew testDebugUnitTest
@@ -82,7 +97,7 @@ app/src/main/java/ir/pardava/mobile/
 The Android app of the **Pardava** bilingual (Persian/English) programming & AI education platform.
 This is a standalone repository talking to the **LMS API** (FastAPI service in the `pardava` repo).
 
-**Platform stage 4 (v0.4.0)** — current app version: `0.4.0`
+**Platform stage 4 (v0.4.x)** — current app version: `0.4.1`
 
 Highlights: OTP login (Google button ready for the Firebase step) · course catalog with
 **server-enforced sequential lesson locking** · Media3 player with side-loaded WebVTT subtitles ·
