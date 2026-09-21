@@ -1,41 +1,33 @@
 package ir.pardava.mobile.core
 
-import android.os.Handler
-import android.os.Looper
 import ir.pardava.mobile.data.PardavaApi
-import ir.pardava.mobile.data.UpdateProfileIn
-import ir.pardava.mobile.data.dto.RefreshIn
-import ir.pardava.mobile.data.dto.TokenOut
+import ir.pardava.mobile.data.dto.UserDto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * Owns the OkHttp/Retrofit stack:
- * - Authorization + Accept-Language headers
- * - 401 → single-flight refresh → retry (rotated refresh token persisted)
- * - refresh failure → session cleared + [onSessionExpired] (login screen)
+ * Owns the OkHttp/Retrofit stack for the site Courses API:
+ * - Bearer token + Accept-Language headers
+ * - Retrofit rebuilt whenever [SessionManager.baseUrl] changes
+ * - No refresh flow (the site issues one long-lived token per session)
  */
 class ApiClient(
     val session: SessionManager,
     private val store: TokenStore,
     private val debugLogging: Boolean = false,
 ) {
-
-    /** Invoked (main thread) when the refresh chain fails — UI navigates to login. */
-    var onSessionExpired: (() -> Unit)? = null
 
     /** Current UI language for Accept-Language; updated by the language switcher. */
     @Volatile
@@ -47,49 +39,6 @@ class ApiClient(
         coerceInputValues = true
     }
 
-    /** Bare client for the refresh call — must NOT recurse through the authenticator. */
-    private val refreshClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .build()
-
-    private val authenticator = okhttp3.Authenticator { _, response ->
-        val refreshed = synchronized(this) {
-            val currentAccess = session.access
-            val requestAuth = response.request.header("Authorization")
-            // Another thread already rotated the token while we waited: just retry.
-            if (currentAccess != null && requestAuth != null && requestAuth != "Bearer $currentAccess") {
-                return@synchronized response.request.newBuilder()
-                    .header("Authorization", "Bearer $currentAccess")
-                    .build()
-            }
-            val refreshTok = session.refresh ?: return@synchronized null
-            val newTokens = refreshBlocking(refreshTok) ?: run {
-                runBlocking { session.clear() }
-                Handler(Looper.getMainLooper()).post { onSessionExpired?.invoke() }
-                return@synchronized null
-            }
-            runBlocking { session.save(newTokens.access_token, newTokens.refresh_token, newTokens.user.id) }
-            response.request.newBuilder()
-                .header("Authorization", "Bearer ${newTokens.access_token}")
-                .build()
-        }
-        refreshed
-    }
-
-    private fun refreshBlocking(refreshToken: String): TokenOut? = runCatching {
-        val payload = json.encodeToString(RefreshIn.serializer(), RefreshIn(refreshToken))
-        val request = Request.Builder()
-            .url("${session.baseUrl}api/v1/auth/refresh")
-            .post(payload.toRequestBody())
-            .build()
-        refreshClient.newCall(request).execute().use { resp ->
-            val body = resp.body?.string()
-            if (!resp.isSuccessful) return@use null
-            json.decodeFromString(TokenOut.serializer(), body ?: return@use null)
-        }
-    }.getOrNull()
-
     private val apiLock = Any()
 
     @Volatile
@@ -100,7 +49,7 @@ class ApiClient(
 
     /**
      * Retrofit instance, rebuilt lazily whenever [SessionManager.baseUrl] changes
-     * (server-address setting on the login screen). All traffic goes through [api].
+     * (server-address setting). All traffic goes through [api].
      */
     private val api: PardavaApi
         get() {
@@ -111,14 +60,17 @@ class ApiClient(
                     inst = apiInstance
                     if (inst == null || apiBaseUrl != url) {
                         val logging = HttpLoggingInterceptor().apply {
-                            level = if (debugLogging) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                            level = if (debugLogging) {
+                                HttpLoggingInterceptor.Level.BASIC
+                            } else {
+                                HttpLoggingInterceptor.Level.NONE
+                            }
                         }
                         val ok = OkHttpClient.Builder()
                             .connectTimeout(15, TimeUnit.SECONDS)
-                            .readTimeout(30, TimeUnit.SECONDS)
+                            .readTimeout(60, TimeUnit.SECONDS)
                             .addInterceptor(headerInterceptor())
                             .addInterceptor(logging)
-                            .authenticator(authenticator)
                             .build()
                         inst = Retrofit.Builder()
                             .baseUrl(url)
@@ -136,52 +88,81 @@ class ApiClient(
 
     private fun headerInterceptor() = Interceptor { chain ->
         val builder = chain.request().newBuilder()
-        session.access?.let { builder.header("Authorization", "Bearer $it") }
+        session.token?.let {
+            builder.header("Authorization", "Bearer $it")
+            builder.header("X-Api-Token", it)
+        }
         builder.header("Accept-Language", acceptLanguage)
         builder.header("X-Client", "pardava-android")
         chain.proceed(builder.build())
     }
 
-    /** Relative signed-media URLs (e.g. `/api/v1/media/...`) → absolute. */
+    /** Relative server URLs (e.g. lesson file links) → absolute against the prefix. */
     fun absoluteUrl(url: String): String =
-        if (url.startsWith("http")) url else session.baseUrl.trimEnd('/') + url
+        if (url.startsWith("http")) url else session.baseUrl.trimEnd('/') + "/" + url.trimStart('/')
+
+    /** Base URL of the courses index WITHOUT trailing slash (Flask route ""). */
+    val coursesIndexUrl: String get() = session.baseUrl.trimEnd('/')
 
     fun api(): PardavaApi = api
 
     suspend fun logout() {
-        runCatching { api().logout(ir.pardava.mobile.data.dto.LogoutIn(session.refresh ?: "")) }
+        runCatching { apiCall { api().logout() } }
         session.clear()
     }
 
-    suspend fun setLanguage(lang: String) {
-        acceptLanguage = lang
-        runCatching { api().updateMe(body = UpdateProfileIn(preferred_language = lang)) }
+    /** Validate a pasted/issued token via /auth/me, store it, and return the profile. */
+    suspend fun signInWithToken(raw: String): UserDto {
+        val previous = session.token
+        session.token = raw.trim()
+        try {
+            val me = apiCall { api().me() }
+            val user = me.user ?: UserDto()
+            session.save(raw.trim())
+            session.profile = user
+            return user
+        } catch (e: Exception) {
+            session.token = previous
+            throw e
+        }
+    }
+
+    suspend fun saveLogin(token: String, user: UserDto?) {
+        session.save(token.trim())
+        session.profile = user
+    }
+
+    suspend fun refreshProfile(): UserDto? = try {
+        val me = apiCall { api().me() }
+        me.user?.also { session.profile = it }
+    } catch (e: ApiException) {
+        // Token revoked/expired server-side → drop the local session.
+        if (e.error.status == 401) session.clear()
+        null
     }
 }
 
-private fun String.toRequestBody(): okhttp3.RequestBody =
-    okhttp3.RequestBody.create("application/json".toMediaType(), this)
-
 /**
- * In-memory mirror of the persisted tokens so interceptors never block on DataStore.
+ * In-memory mirror of the persisted session so interceptors never block on DataStore.
  */
 class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
     @Volatile
-    var access: String? = null
-        private set
-
-    @Volatile
-    var refresh: String? = null
-        private set
+    var token: String? = null
+        internal set
 
     @Volatile
     var baseUrl: String = BuildConfigDefault.url
         private set
 
+    /** Latest known profile (from login response or /auth/me). */
     @Volatile
-    var userId: Long? = null
-        private set
+    var profile: UserDto? = null
+
+    private val _signedIn = MutableStateFlow(false)
+
+    /** Reactive sign-in state for screens that must refresh after login/logout. */
+    val signedIn: StateFlow<Boolean> = _signedIn
 
     private val readySignal = kotlinx.coroutines.CompletableDeferred<Unit>()
 
@@ -196,9 +177,9 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
         }
         scope.launch {
             var first = true
-            store.tokens.collect { t ->
-                access = t.access
-                refresh = t.refresh
+            store.token.collect { t ->
+                token = t
+                _signedIn.value = t != null
                 if (first) {
                     first = false
                     readySignal.complete(Unit)
@@ -209,37 +190,30 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
     suspend fun restore() {
         val snap = store.snapshot()
-        access = snap.access
-        refresh = snap.refresh
+        token = snap.token
         baseUrl = snap.baseUrl.trimEnd('/') + "/"
+        _signedIn.value = snap.token != null
     }
 
-    suspend fun save(accessToken: String, refreshToken: String, userId: Long? = null) {
-        store.save(accessToken, refreshToken, userId)
-        access = accessToken
-        refresh = refreshToken
-        userId?.let { this.userId = it }
+    suspend fun save(newToken: String) {
+        store.save(newToken)
+        token = newToken
+        _signedIn.value = true
     }
 
     suspend fun clear() {
         store.clear()
-        access = null
-        refresh = null
+        token = null
+        profile = null
+        _signedIn.value = false
     }
 
-    /** Runtime server switching (login screen) — memory + DataStore, instant. */
+    /** Runtime server switching — memory + DataStore, instant. */
     suspend fun setBaseUrl(url: String) {
         val normalized = url.trim().trimEnd('/') + "/"
         store.setBaseUrl(normalized)
         baseUrl = normalized
     }
 
-    val isSignedIn: Boolean get() = refresh != null
-}
-
-/** Helper: run a suspended API call and translate [HttpException] into [ApiException]. */
-suspend fun <T> apiCall(block: suspend () -> T): T = try {
-    block()
-} catch (e: HttpException) {
-    throw ApiException(ApiError.from(e))
+    val isSignedIn: Boolean get() = token != null
 }

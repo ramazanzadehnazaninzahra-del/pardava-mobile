@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,321 +13,234 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
 import ir.pardava.mobile.core.Fmt
 import ir.pardava.mobile.ui.screens.courses.SimpleVmFactory
-import kotlinx.coroutines.delay
 
-private val TAB_COUNT = 4
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LessonScreen(
     app: PardavaApp,
-    courseSlug: String,
-    lessonSlug: String,
+    slug: String,
+    lessonId: Long,
     onBack: () -> Unit,
-    onOpenQuiz: (courseSlug: String, lessonSlug: String, quizId: Long) -> Unit,
+    onGoLogin: () -> Unit,
+    onOpenLesson: (String, Long) -> Unit,
 ) {
-    val lang = app.currentLanguage()
-    val vm: LessonViewModel = viewModel(
-        key = "$courseSlug/$lessonSlug",
-        factory = LessonVmFactory(app.api, courseSlug, lessonSlug),
-    )
+    val vm: LessonViewModel = viewModel(factory = SimpleVmFactory(app.api) { LessonViewModel(it) })
     val state by vm.state.collectAsState()
-    val media by vm.media.collectAsState()
-    var tab by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(courseSlug, lessonSlug) { vm.load(lang) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    val title = (state as? LessonUiState.Ready)?.lesson?.title ?: ""
-                    Text(title, maxLines = 1)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        when (val s = state) {
-            is LessonUiState.Loading -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
-
-            is LessonUiState.Failure -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { Text(s.message, color = MaterialTheme.colorScheme.error) }
-
-            is LessonUiState.Ready -> if (s.lesson.locked) {
-                LockedPanel(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(24.dp),
-                    requirements = s.lesson.unlock_requirements,
-                    lang = lang,
-                )
-            } else {
-                UnlockedLesson(
-                    app = app,
-                    vm = vm,
-                    s = s,
-                    media = media,
-                    lang = lang,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    tab = tab,
-                    onTab = { tab = it },
-                    onOpenQuiz = onOpenQuiz,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LockedPanel(modifier: Modifier, requirements: Map<String, Map<String, String>>, lang: String) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            Icons.Filled.Lock,
-            contentDescription = stringResource(R.string.locked_lesson),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(stringResource(R.string.error_locked_content), style = MaterialTheme.typography.titleMedium)
-        requirements.forEach { (_, texts) ->
-            Text(
-                if (lang == "en") texts["en"] ?: texts["fa"] ?: "" else texts["fa"] ?: "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun UnlockedLesson(
-    app: PardavaApp,
-    vm: LessonViewModel,
-    s: LessonUiState.Ready,
-    media: LessonMedia?,
-    lang: String,
-    modifier: Modifier,
-    tab: Int,
-    onTab: (Int) -> Unit,
-    onOpenQuiz: (String, String, Long) -> Unit,
-) {
-    val lesson = s.lesson
+    val busy by vm.busy.collectAsState()
+    val notice by vm.notice.collectAsState()
+    val download by vm.download.collectAsState()
+    val signedIn by app.session.signedIn.collectAsState()
+    val lang = app.currentLanguage()
     val context = LocalContext.current
-    val player = remember(media?.videoUrl?.url) {
-        media?.let { m ->
-            val item = buildMediaItem(app, m)
-            ExoPlayer.Builder(context).build().apply {
-                setMediaItem(item)
-                prepare()
-                playWhenReady = false
-                trackSelectionParameters = trackSelectionParameters.buildUpon()
-                    .setPreferredTextLanguages(m.videoUrl.lang)
-                    .build()
-            }
+    val snackbar = remember { SnackbarHostState() }
+
+    LaunchedEffect(slug, lessonId) { vm.bind(slug, lessonId) }
+    // Reload after returning from the login screen.
+    LaunchedEffect(signedIn) { if (lessonId != 0L) vm.load() }
+    LaunchedEffect(notice) {
+        notice?.let {
+            snackbar.showSnackbar(it)
+            vm.consumeNotice()
+        }
+    }
+    LaunchedEffect(download) {
+        val d = download
+        if (d is DownloadState.Failed) {
+            snackbar.showSnackbar(d.message)
+            vm.consumeDownloadResult()
         }
     }
 
-    // Periodic progress reporting every 15 s while the lesson is open.
-    LaunchedEffect(player, lesson.id) {
-        if (player == null) return@LaunchedEffect
-        while (true) {
-            delay(15_000)
-            val duration = player.duration.takeIf { it > 0 } ?: return@LaunchedEffect
-            val position = player.currentPosition.coerceAtLeast(0)
-            val percent = ((position * 100.0) / duration).toInt().coerceIn(0, 100)
-            vm.reportProgress(lesson, media?.videoUrl?.lang ?: lang, (position / 1000).toInt(), percent)
-        }
-    }
-
-    DisposableEffect(player) { onDispose { player?.release() } }
-
-    Column(modifier.verticalScroll(rememberScrollState())) {
-        if (player != null) {
-            AndroidView(
-                factory = { ctx -> PlayerView(ctx).apply { this.player = player; useController = true } },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f),
-            )
-        } else {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f),
-                contentAlignment = Alignment.Center,
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.subtitles_none), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                }
+                Text(
+                    (state as? LessonUiState.Ready)?.detail?.course?.title
+                        ?: stringResource(R.string.lesson_body),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                )
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
-        TabRow(selectedTabIndex = tab) {
-            Tab(tab == 0, onClick = { onTab(0) }, text = { Text(stringResource(R.string.lesson_body)) })
-            Tab(tab == 1, onClick = { onTab(1) }, text = { Text(stringResource(R.string.lesson_code)) })
-            Tab(tab == 2, onClick = { onTab(2) }, text = { Text(stringResource(R.string.lesson_exercise)) })
-            Tab(tab == 3, onClick = { onTab(3) }, text = { Text(stringResource(R.string.lesson_quiz)) })
-        }
+            when (val s = state) {
+                is LessonUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            when (tab) {
-                0 -> SectionText(lesson.body)
-                1 -> CodeBlock(lesson.code_sample)
-                2 -> SectionText(lesson.exercise)
-                3 -> lesson.quiz?.let { quiz ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(quiz.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                stringResource(
-                                    R.string.quiz_meta,
-                                    Fmt.int(quiz.question_count, lang),
-                                    Fmt.int((quiz.duration_seconds ?: 0) / 60, lang),
-                                    Fmt.int(quiz.pass_score_percent, lang),
-                                    Fmt.int(quiz.attempts_used ?: 0, lang),
-                                    Fmt.int(quiz.max_attempts, lang),
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            val exhausted = (quiz.attempts_used ?: 0) >= quiz.max_attempts
-                            if (!exhausted) {
-                                Button(onClick = { onOpenQuiz(lesson.course_slug, lesson.slug, quiz.id) }) {
-                                    Text(
-                                        if ((quiz.attempts_used ?: 0) > 0) stringResource(R.string.quiz_resume)
-                                        else stringResource(R.string.quiz_start),
-                                    )
-                                }
-                            } else {
-                                Text(stringResource(R.string.quiz_no_attempts), color = MaterialTheme.colorScheme.error)
+                is LessonUiState.Failure -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(s.message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = { vm.load() }) { Text(stringResource(R.string.retry)) }
+                    }
+                }
+
+                is LessonUiState.Ready -> {
+                    val lesson = s.detail.lesson
+                    if (lesson == null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(stringResource(R.string.error_generic))
+                        }
+                        return@Scaffold
+                    }
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            lesson.title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (lesson.duration_min > 0) {
+                                Text(
+                                    stringResource(R.string.minutes_short, Fmt.int(lesson.duration_min, lang)),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                            if (lesson.quiz_passed) {
+                            if (lesson.state == "preview") {
                                 Text(
-                                    stringResource(R.string.quiz_passed) + " ✓",
+                                    stringResource(R.string.lesson_state_preview),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
+                            if (lesson.state == "done") {
+                                Text(
+                                    stringResource(R.string.lesson_state_done),
+                                    style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
                                 )
-                            } else if (lesson.best_score_percent != null) {
-                                Text(
-                                    stringResource(R.string.quiz_score, Fmt.int(lesson.best_score_percent!!.toInt(), lang)),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
+                            }
+                        }
+
+                        if (!lesson.description.isNullOrBlank()) {
+                            Text(lesson.description, style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        if (!signedIn) {
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Text(stringResource(R.string.lesson_login_banner), style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(onClick = onGoLogin) { Text(stringResource(R.string.go_login)) }
+                                }
+                            }
+                        }
+
+                        if (lesson.file != null && (lesson.file.url != null || signedIn)) {
+                            Card(Modifier.fillMaxWidth()) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.AttachFile, contentDescription = null)
+                                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                                        Text(lesson.file.name.ifBlank { stringResource(R.string.lesson_file) }, style = MaterialTheme.typography.bodyMedium)
+                                        if (lesson.file.size > 0) {
+                                            Text(
+                                                Fmt.digits(formatSize(lesson.file.size), lang),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                    when {
+                                        download == DownloadState.Running -> CircularProgressIndicator(
+                                            Modifier.height(24.dp),
+                                            strokeWidth = 2.dp,
+                                        )
+                                        else -> TextButton(onClick = { vm.downloadFile(context) }) {
+                                            Text(stringResource(R.string.lesson_file_download))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (signedIn && lesson.state != "done") {
+                            Button(
+                                onClick = { vm.complete() },
+                                enabled = !busy,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                if (busy) {
+                                    CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Text(stringResource(R.string.lesson_complete_button))
+                                }
+                            }
+                        } else if (lesson.state == "done") {
+                            OutlinedButton(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Filled.CheckCircle, contentDescription = null)
+                                Text(stringResource(R.string.lesson_state_done))
+                            }
+                        }
+
+                        // Prev / next navigation
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            if (lesson.prev_id != null) {
+                                OutlinedButton(onClick = { onOpenLesson(slug, lesson.prev_id!!) }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                                    Text(stringResource(R.string.lesson_prev))
+                                }
+                            }
+                            Spacer(Modifier.weight(1f))
+                            if (lesson.next_id != null) {
+                                OutlinedButton(onClick = { onOpenLesson(slug, lesson.next_id!!) }) {
+                                    Text(stringResource(R.string.lesson_next))
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                                }
                             }
                         }
                     }
                 }
             }
-
-            if (lesson.fallback_used) {
-                HorizontalDivider()
-                Text(
-                    stringResource(R.string.fallback_translation_notice),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
 
-@Composable
-private fun SectionText(text: String?) {
-    if (text.isNullOrBlank()) {
-        Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    } else {
-        Text(text, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun CodeBlock(code: String?) {
-    if (code.isNullOrBlank()) {
-        Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        return
-    }
-    Card(Modifier.fillMaxWidth()) {
-        Text(
-            code,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(12.dp),
-        )
-    }
-}
-
-private fun buildMediaItem(app: PardavaApp, m: LessonMedia): MediaItem {
-    val videoUri = android.net.Uri.parse(app.api.absoluteUrl(m.videoUrl.url))
-    val subtitleConfig = m.subtitle?.let { sub ->
-        MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(app.api.absoluteUrl(sub.url)))
-            .setMimeType(MimeTypes.TEXT_VTT)
-            .setLanguage(m.videoUrl.lang)
-            .setSelectionFlags(androidx.media3.common.C.SELECTION_FLAG_DEFAULT)
-            .build()
-    }
-    return MediaItem.Builder()
-        .setUri(videoUri)
-        .apply { subtitleConfig?.let { setSubtitleConfigurations(listOf(it)) } }
-        .build()
-}
-
-class LessonVmFactory(
-    private val client: ir.pardava.mobile.core.ApiClient,
-    private val courseSlug: String,
-    private val lessonSlug: String,
-) : androidx.lifecycle.ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-        LessonViewModel(client, courseSlug, lessonSlug) as T
+private fun formatSize(bytes: Long): String = when {
+    bytes >= 1_000_000 -> String.format(java.util.Locale.US, "%.1f MB", bytes / 1_000_000.0)
+    bytes >= 1_000 -> String.format(java.util.Locale.US, "%.0f KB", bytes / 1_000.0)
+    else -> "$bytes B"
 }
