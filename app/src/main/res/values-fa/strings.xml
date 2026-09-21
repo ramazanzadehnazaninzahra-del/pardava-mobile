@@ -29,7 +29,9 @@
     <string name="code_sent_to">کد به %1$s ارسال شد · اعتبار %2$d دقیقه</string>
     <string name="dev_code_hint">کد حالت توسعه: %1$s</string>
     <string name="google_sign_in">ورود با گوگل</string>
-    <string name="google_not_configured">ورود با گوگل به تنظیمات Firebase نیاز دارد (به‌زودی).</string>
+    <string name="google_not_configured">ورود با گوگل در حال حاضر در دسترس نیست.</string>
+    <string name="google_open_failed">مرورگر برای ورود با گوگل باز نشد.</string>
+    <string name="google_link_failed">ورود با گوگل کامل نشد؛ لطفاً دوباره تلاش کنید.</string>
     <string name="invalid_phone">لطفاً یک شمارهٔ موبایل معتبر وارد کنید.</string>
     <string name="invalid_code">لطفاً کد ۶ رقمی را وارد کنید.</string>
     <string name="edit_number">اصلاح شماره</string>

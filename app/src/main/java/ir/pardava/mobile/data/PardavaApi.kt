@@ -4,6 +4,7 @@ import ir.pardava.mobile.data.dto.AttemptOut
 import ir.pardava.mobile.data.dto.AttemptQuestionsOut
 import ir.pardava.mobile.data.dto.CourseBrief
 import ir.pardava.mobile.data.dto.CourseDetail
+import ir.pardava.mobile.data.dto.GoogleExchangeIn
 import ir.pardava.mobile.data.dto.GoogleLoginIn
 import ir.pardava.mobile.data.dto.LeaderboardOut
 import ir.pardava.mobile.data.dto.LessonDetail
@@ -42,6 +43,9 @@ interface PardavaApi {
 
     @POST("api/v1/auth/google")
     suspend fun googleLogin(@Body body: GoogleLoginIn): TokenOut
+
+    @POST("api/v1/auth/google/exchange")
+    suspend fun googleExchange(@Body body: GoogleExchangeIn): TokenOut
 
     @POST("api/v1/auth/refresh")
     suspend fun refresh(@Body body: RefreshIn): TokenOut

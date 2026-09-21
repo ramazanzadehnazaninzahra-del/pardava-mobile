@@ -9,7 +9,7 @@
 
 | بخش | توضیح |
 |------|-------|
-| ورود | OTP موبایل (نمایش کد در حالت dev سرور) + دکمهٔ گوگل (نیازمند تنظیم Firebase؛ تا آن موقع غیرفعال) |
+| ورود | OTP موبایل (نمایش کد در حالت dev سرور) + **ورود با گوگل** از طریق مرورگر (OAuth + PKCE، بدون نیاز به Firebase) |
 | دوره‌ها | فهرست دوره‌ها، درخت فصل/جلسه با وضعیت **قفل/تکمیل/قبولی آزمون** (قفل ترتیبی سمت سرور اعمال می‌شود) |
 | جلسه | پخش‌کنندهٔ ویدیو (Media3/ExoPlayer) با **زیرنویس WebVTT ساید‌لودشده**، متن جلسه، نمونه کد، تمرین |
 | پیشرفت | گزارش خودکار هر ۱۵ ثانیه (ثانیه/درصد تماشا)؛ سرور تصمیم می‌گیرد چه زمانی جلسه «تکمیل» شود |
@@ -39,12 +39,25 @@ app/src/main/java/ir/pardava/mobile/
 
 ## نصب نسخهٔ آماده (APK)
 
-فایل `Pardava-v0.4.1-release.apk` امضاشده‌شده است و روی هر گوشی اندروید ۷ به بالا نصب می‌شود:
+فایل `Pardava-v0.4.2-release.apk` امضاشده است و روی هر گوشی اندروید ۷ به بالا نصب می‌شود:
 
 1. فایل را به گوشی منتقل کنید و بازش کنید؛ در پیام «نصب از منابع ناشناس» اجازهٔ نصب را بدهید.
 2. در اولین اجرا روی صفحهٔ ورود دکمهٔ **«آدرس سرور»** را بزنید و نشانی بک‌اند را وارد کنید
    (مثال شبکهٔ محلی: `http://192.168.1.10:8100/` — برای امنیت کامل در اینترنت از HTTPS استفاده کنید).
 3. شمارهٔ موبایل را وارد کنید؛ در حالت dev سرور، کد تأیید (OTP) در پاسخِ `dev_code` نمایش داده می‌شود.
+4. یا دکمهٔ **«ورود با گوگل»** را بزنید؛ مرورگر باز می‌شود، جیمیل را انتخاب می‌کنید و اپ دوباره باز می‌شود.
+
+### هشدارهای هنگام نصب (Play Protect)
+
+چون APK خارج از Google Play نصب می‌شود، اندروید/Play Protect هشدار می‌دهد. این هشدارها
+طبیعی هستند و با امضای معتبر هم حذف نمی‌شوند:
+
+- «Install unknown apps / منابع ناشناس» → روی **Settings → Allow** بزنید (فقط برای مرورگر/فایل‌منیجر).
+- «Unknown developer / App not scanned» → **Details → Install anyway (نصب به هر حال)**.
+- «Play Protect blocked» → **More details → Install anyway**. اپ فقط مجوز `INTERNET` دارد
+  و کلید امضای آن منتشر شده است.
+- مسیر بدون هشدار: انتشار در Google Play (حتی **Internal testing** با حساب Play Console) —
+  بعداً در نقشه راه بررسی می‌شود.
 
 > **امضای ریلیز**: فایل `keystore.properties` (gitignored) حاوی مسیر/رمز keystore است؛
 > `pardava-release.keystore` را مثل رمز عبور نگه دارید — بدون آن به‌روزرسانی با همان امضا ممکن نیست.
@@ -97,9 +110,10 @@ app/src/main/java/ir/pardava/mobile/
 The Android app of the **Pardava** bilingual (Persian/English) programming & AI education platform.
 This is a standalone repository talking to the **LMS API** (FastAPI service in the `pardava` repo).
 
-**Platform stage 4 (v0.4.x)** — current app version: `0.4.1`
+**Platform stage 4 (v0.4.x)** — current app version: `0.4.2`
 
-Highlights: OTP login (Google button ready for the Firebase step) · course catalog with
+Highlights: OTP login **+ browser-based Google sign-in (OAuth + PKCE, no Firebase needed)** ·
+in-app server address · course catalog with
 **server-enforced sequential lesson locking** · Media3 player with side-loaded WebVTT subtitles ·
 automatic progress reporting every 15s · server-graded quizzes with countdown & auto-submit ·
 XP / levels / streaks / achievements / leaderboards · full fa/en UI with instant RTL/LTR switching ·

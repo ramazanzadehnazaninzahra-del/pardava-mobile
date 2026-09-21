@@ -30,7 +30,9 @@
     <string name="code_sent_to">Code sent to %1$s · expires in %2$d min</string>
     <string name="dev_code_hint">Dev mode code: %1$s</string>
     <string name="google_sign_in">Sign in with Google</string>
-    <string name="google_not_configured">Google sign-in needs Firebase configuration (coming soon).</string>
+    <string name="google_not_configured">Google sign-in is not available right now.</string>
+    <string name="google_open_failed">Could not open the browser for Google sign-in.</string>
+    <string name="google_link_failed">Google sign-in could not be completed. Please try again.</string>
     <string name="invalid_phone">Please enter a valid mobile number.</string>
     <string name="invalid_code">Please enter the 6-digit code.</string>
     <string name="edit_number">Edit number</string>

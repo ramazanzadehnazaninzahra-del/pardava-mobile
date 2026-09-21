@@ -22,6 +22,9 @@ data class OtpVerifyIn(val phone: String, val code: String, val device: String? 
 data class GoogleLoginIn(val id_token: String, val device: String? = null)
 
 @Serializable
+data class GoogleExchangeIn(val code: String, val device: String? = null)
+
+@Serializable
 data class RefreshIn(val refresh_token: String)
 
 @Serializable
