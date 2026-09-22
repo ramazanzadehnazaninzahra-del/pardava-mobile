@@ -1,6 +1,8 @@
 package ir.pardava.mobile.ui.components
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -179,5 +181,37 @@ fun SelectableRow(
                 )
             }
         }
+    }
+}
+
+/** Softly pulsing placeholder block used by skeleton loaders. */
+@Composable
+fun SkeletonBlock(modifier: Modifier = Modifier, corner: androidx.compose.ui.unit.Dp = 12.dp) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.85f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(750, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "skeletonAlpha",
+    )
+    Box(
+        modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = alpha), RoundedCornerShape(corner)),
+    )
+}
+
+/** Skeleton mimic of the catalog course card, shown while the list loads. */
+@Composable
+fun SkeletonCourseCard() {
+    Column {
+        SkeletonBlock(Modifier.fillMaxWidth().height(132.dp), corner = 20.dp)
+        Spacer(Modifier.height(12.dp))
+        SkeletonBlock(Modifier.fillMaxWidth(0.72f).height(18.dp))
+        Spacer(Modifier.height(8.dp))
+        SkeletonBlock(Modifier.fillMaxWidth(0.45f).height(14.dp))
+        Spacer(Modifier.height(6.dp))
     }
 }

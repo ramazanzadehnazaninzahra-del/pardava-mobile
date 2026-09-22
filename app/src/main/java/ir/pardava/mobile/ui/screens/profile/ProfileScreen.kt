@@ -1,6 +1,7 @@
 package ir.pardava.mobile.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stars
@@ -51,13 +54,15 @@ import ir.pardava.mobile.ui.screens.courses.SimpleVmFactory
 
 /**
  * Profile tab. Guests see an inviting sign-in card; signed-in learners see
- * their identity, points and enrollment count plus logout / settings actions.
+ * their identity, points and enrollment count plus a "continue learning"
+ * section that deep-links into each enrolled course.
  */
 @Composable
 fun ProfileScreen(
     app: PardavaApp,
     onOpenLogin: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenCourse: (String) -> Unit = {},
 ) {
     val vm: ProfileViewModel = viewModel(factory = SimpleVmFactory(app.api) { ProfileViewModel(it) })
     val state by vm.state.collectAsStateWithLifecycle()
@@ -137,6 +142,33 @@ fun ProfileScreen(
                 }
                 Spacer(Modifier.height(24.dp))
 
+                // ---- continue learning ----
+                val enrollments = s.me.enrollments.orEmpty()
+                if (enrollments.isNotEmpty()) {
+                    Column(Modifier.fillMaxWidth()) {
+                        Text(
+                            stringResource(R.string.continue_learning),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp),
+                        )
+                        Text(
+                            stringResource(R.string.continue_learning_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
+                        )
+                        enrollments.forEach { ref ->
+                            val slug = ref.slug
+                            if (!slug.isNullOrBlank()) {
+                                EnrollmentRow(title = ref.title ?: slug) { onOpenCourse(slug) }
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+
                 // ---- actions ----
                 OutlinedButton(
                     onClick = onOpenSettings,
@@ -157,6 +189,49 @@ fun ProfileScreen(
                     Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EnrollmentRow(title: String, onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(34.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
         }
     }
 }

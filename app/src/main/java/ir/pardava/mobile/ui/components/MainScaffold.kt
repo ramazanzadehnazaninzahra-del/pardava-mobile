@@ -59,7 +59,12 @@ fun MainScaffold(
             LeaderboardScreen(app = app)
         },
         TabSpec(stringResource(R.string.nav_profile), Icons.Filled.Person) {
-            ProfileScreen(app = app, onOpenLogin = onOpenLogin, onOpenSettings = onOpenSettings)
+            ProfileScreen(
+                app = app,
+                onOpenLogin = onOpenLogin,
+                onOpenSettings = onOpenSettings,
+                onOpenCourse = onOpenCourse,
+            )
         },
     )
 
