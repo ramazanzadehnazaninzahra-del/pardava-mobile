@@ -1,5 +1,7 @@
 package ir.pardava.mobile.core
 
+import android.os.Handler
+import android.os.Looper
 import ir.pardava.mobile.data.PardavaApi
 import ir.pardava.mobile.data.dto.ApiException
 import ir.pardava.mobile.data.dto.Envelope
@@ -7,8 +9,6 @@ import ir.pardava.mobile.data.dto.UserDto
 import ir.pardava.mobile.data.dto.requireOk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerializationException
@@ -16,7 +16,10 @@ import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit

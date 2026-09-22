@@ -68,8 +68,6 @@ class LoginViewModel(private val client: ApiClient) : ViewModel() {
         if (_busy.value) return
         _busy.value = true
         viewModelScope.launch {
-            _busy.value = true
-            _error.value = null
             try {
                 val res = client.call { client.api.otpRequest(OtpRequestIn(phone)) }
                 _otpSent.value = phone

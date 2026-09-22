@@ -14,7 +14,6 @@ sealed interface CoursesUiState {
     data class Failure(val message: String) : CoursesUiState
 }
 
-/** Public catalog — loads with or without a signed-in session. */
 class CoursesViewModel(private val client: ApiClient) : ViewModel() {
 
     private val _state = MutableStateFlow<CoursesUiState>(CoursesUiState.Loading)

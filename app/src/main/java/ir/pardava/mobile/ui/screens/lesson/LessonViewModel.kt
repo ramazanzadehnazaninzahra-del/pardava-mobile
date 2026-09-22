@@ -72,7 +72,6 @@ class LessonViewModel(
         if (_busy.value) return
         _busy.value = true
         viewModelScope.launch {
-            _busy.value = true
             try {
                 val res = client.call { client.api.complete(slug, lessonId) }
                 _message.value = res.message

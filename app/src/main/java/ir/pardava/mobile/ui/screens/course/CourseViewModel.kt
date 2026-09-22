@@ -37,7 +37,6 @@ class CourseViewModel(
     fun consumeAction() { _action.value = null }
 
     fun load() {
-        if (slug.isEmpty()) return
         _state.value = CourseUiState.Loading
         viewModelScope.launch {
             try {

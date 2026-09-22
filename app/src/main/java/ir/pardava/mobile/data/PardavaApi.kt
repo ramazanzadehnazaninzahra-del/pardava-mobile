@@ -18,8 +18,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.Streaming
-import retrofit2.http.Url
 
 /**
  * Pardava Courses API (v1.1.0) — base URL is the SITE ROOT (e.g. https://pardava.ir/)

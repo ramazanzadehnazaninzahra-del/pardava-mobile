@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -248,11 +247,3 @@ private fun Badge(text: String, container: Color, contentColor: Color) {
         Text(text, style = MaterialTheme.typography.labelSmall, color = contentColor, fontWeight = FontWeight.Bold)
     }
 }
-
-@Composable
-private fun priceLabel(course: CourseDto, lang: String): String =
-    if (course.is_free || course.price == 0L) {
-        stringResource(R.string.course_free)
-    } else {
-        stringResource(R.string.course_price, Fmt.digits(course.price.toString(), lang))
-    }

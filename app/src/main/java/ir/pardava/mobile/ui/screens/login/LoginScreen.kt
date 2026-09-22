@@ -39,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -185,7 +184,6 @@ fun LoginScreen(app: PardavaApp, onSignedIn: () -> Unit) {
                         placeholder = { Text(stringResource(R.string.code_hint)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(12.dp))
@@ -346,50 +344,4 @@ private fun googleSignIn(
             onError("ورود با گوگل انجام نشد: ${e.message ?: "خطای نامشخص"}")
         }
     }
-}
-
-/** Credential Manager flow → Google ID token → POST /auth/google. */
-private suspend fun signInWithGoogle(
-    app: PardavaApp,
-    context: android.content.Context,
-    vm: LoginViewModel,
-    onSignedIn: () -> Unit,
-) {
-    val clientId = BuildConfigDefault.googleClientId
-    if (clientId.isBlank()) return
-    try {
-        val manager = CredentialManager.create(context)
-        val option = GetGoogleIdOption.Builder()
-            .setServerClientId(clientId)
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
-            .build()
-        val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-        val response: GetCredentialResponse = manager.getCredential(context, request)
-        val credential = response.credential
-        if (credential is CustomCredential &&
-            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-        ) {
-            val googleId = GoogleIdTokenCredential.createFrom(credential.data)
-            vm.loginWithGoogleIdToken(googleId.idToken) { onSignedIn() }
-        }
-    } catch (e: NoCredentialException) {
-        vm.reportGoogleError(context.getString(R.string.google_no_account))
-    } catch (e: GetCredentialException) {
-        vm.reportGoogleError(e.message ?: context.getString(R.string.google_signin_failed))
-    } catch (e: Exception) {
-        vm.reportGoogleError(e.message ?: context.getString(R.string.google_signin_failed))
-    }
-}
-
-@Composable
-private fun GoogleHelpDialog(onDismiss: () -> Unit) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.google_help_title)) },
-        text = { Text(stringResource(R.string.google_help_body)) },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ok)) }
-        },
-    )
 }
