@@ -27,11 +27,15 @@ android {
         applicationId = "ir.pardava.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.4.1"
+        versionCode = 3
+        versionName = "0.5.0"
         vectorDrawables { useSupportLibrary = true }
-        // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://lms.pardava.ir/
-        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "http://10.0.2.2:8100/"}\"")
+        // Base URL is the SITE ROOT; the app appends api/courses/… itself.
+        // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/
+        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "https://pardava.ir/"}\"")
+        // Web client id for Google Sign-In (empty until google-services.json is provisioned;
+        // the server endpoint POST api/courses/auth/google is already wired).
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${project.findProperty("pardavaGoogleClientId") ?: ""}\"")
     }
 
     signingConfigs {
@@ -76,6 +80,7 @@ if (googleServicesFile.exists()) {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -95,8 +100,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.media3.exoplayer)
-    implementation(libs.media3.ui)
+    implementation(libs.coil.compose)
 
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
