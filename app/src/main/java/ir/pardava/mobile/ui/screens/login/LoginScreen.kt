@@ -1,6 +1,5 @@
 package ir.pardava.mobile.ui.screens.login
 
-import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,17 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
-import ir.pardava.mobile.core.BuildConfigDefault
 import ir.pardava.mobile.ui.components.BrandBanner
 import ir.pardava.mobile.ui.components.LanguageSwitchRow
 import kotlinx.coroutines.delay
@@ -276,19 +268,20 @@ fun LoginScreen(app: PardavaApp, onSignedIn: () -> Unit) {
 @Composable
 private fun GoogleRow(app: PardavaApp, vm: LoginViewModel, busy: Boolean, onSignedIn: () -> Unit) {
     val context = LocalContext.current
-    var showNotice by remember { mutableStateOf(false) }
 
     OutlinedButton(
         onClick = {
-            if (BuildConfigDefault.googleClientId.isBlank()) {
-                showNotice = true
-            } else if (context is Activity) {
-                googleSignIn(
-                    context,
-                    BuildConfigDefault.googleClientId,
-                    onToken = { idToken -> vm.loginWithGoogle(idToken) { onSignedIn() } },
-                    onError = { msg -> vm.showError(msg) },
+            // Google web-bridge: the site performs the OAuth dance and returns
+            // to the app with a one-time code (pardava://auth/callback?code=…).
+            val nonce = java.util.UUID.randomUUID().toString().replace("-", "")
+            val url = app.siteUrl("api/mobile/auth/google/start?nonce=$nonce")
+            try {
+                context.startActivity(
+                    android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                 )
+            } catch (_: Exception) {
+                vm.showError(context.getString(R.string.google_no_browser))
             }
         },
         enabled = !busy,
@@ -298,50 +291,5 @@ private fun GoogleRow(app: PardavaApp, vm: LoginViewModel, busy: Boolean, onSign
         Icon(Icons.Filled.AlternateEmail, contentDescription = null, modifier = Modifier.width(18.dp))
         Spacer(Modifier.width(8.dp))
         Text(stringResource(R.string.google_sign_in))
-    }
-
-    if (showNotice) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showNotice = false },
-            title = { Text(stringResource(R.string.google_sign_in)) },
-            text = { Text(stringResource(R.string.google_needs_config)) },
-            confirmButton = {
-                TextButton(onClick = { showNotice = false }) { Text(stringResource(R.string.ok)) }
-            },
-        )
-    }
-}
-
-/** Credential Manager sign-in; requires a configured web client id. */
-private fun googleSignIn(
-    activity: Activity,
-    clientId: String,
-    onToken: (String) -> Unit,
-    onError: (String) -> Unit,
-) {
-    val manager = CredentialManager.create(activity)
-    val request = GetCredentialRequest.Builder()
-        .addCredentialOption(
-            GetGoogleIdOption.Builder()
-                .setServerClientId(clientId)
-                .setFilterByAuthorizedAccounts(false)
-                .build(),
-        )
-        .build()
-    kotlinx.coroutines.CoroutineScope(Dispatchers.Main).launch {
-        try {
-            val result = manager.getCredential(activity, request)
-            val credential = result.credential
-            if (credential is CustomCredential &&
-                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-            ) {
-                val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
-                onToken(googleCred.idToken)
-            } else {
-                onError("اعتبارنامهٔ گوگل شناسایی نشد.")
-            }
-        } catch (e: GetCredentialException) {
-            onError("ورود با گوگل انجام نشد: ${e.message ?: "خطای نامشخص"}")
-        }
     }
 }

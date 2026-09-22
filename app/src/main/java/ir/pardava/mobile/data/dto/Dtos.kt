@@ -251,3 +251,126 @@ data class LeagueResponse(
     val courses: List<CourseRefDto> = emptyList(),
     val leaders: List<LeaderRowDto> = emptyList(),
 ) : Envelope
+
+/* ---------------- mobile service (https://pardava.ir/api/mobile) ---------------- */
+
+@Serializable
+data class LatestVersionDto(
+    @SerialName("versionCode") val versionCode: Int? = null,
+    @SerialName("versionName") val versionName: String? = null,
+    @SerialName("apkUrl") val apkUrl: String? = null,
+    @SerialName("whatsNew") val whatsNew: String? = null,
+    @SerialName("minVersionCode") val minVersionCode: Int? = null,
+    @SerialName("publishedAt") val publishedAt: String? = null,
+)
+
+@Serializable
+data class VersionResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val latest: LatestVersionDto? = null,
+) : Envelope
+
+@Serializable
+data class ServiceItemDto(
+    val key: String? = null,
+    val title: String? = null,
+    val desc: String? = null,
+    val url: String? = null,
+    val icon: String? = null,
+    val category: String? = null,
+)
+
+@Serializable
+data class MobileArticleDto(
+    val id: Long? = null,
+    val slug: String? = null,
+    val title: String? = null,
+    val excerpt: String? = null,
+    @SerialName("cover_url") val coverUrl: String? = null,
+    val tag: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class HomeResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val services: List<ServiceItemDto> = emptyList(),
+    val courses: List<CourseCardDto> = emptyList(),
+    val articles: List<MobileArticleDto> = emptyList(),
+    val stats: HomeStatsDto? = null,
+) : Envelope
+
+@Serializable
+data class HomeStatsDto(
+    val courses: Int? = null,
+    val articles: Int? = null,
+    val services: Int? = null,
+)
+
+@Serializable
+data class ArticlesResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val count: Int? = null,
+    val articles: List<MobileArticleDto> = emptyList(),
+) : Envelope
+
+@Serializable
+data class ArticleDetailDto(
+    val id: Long? = null,
+    val slug: String? = null,
+    val title: String? = null,
+    val excerpt: String? = null,
+    @SerialName("cover_url") val coverUrl: String? = null,
+    val tag: String? = null,
+    val author: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val html: String? = null,
+    val url: String? = null,
+)
+
+@Serializable
+data class ArticleDetailResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val article: ArticleDetailDto? = null,
+) : Envelope
+
+/** Google web-bridge exchange response — carries the same pdv_ token as other logins. */
+@Serializable
+data class ExchangeResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val token: String? = null,
+    val user: UserDto? = null,
+    @SerialName("site_url") val siteUrl: String? = null,
+) : Envelope
+
+@Serializable
+data class ServicesResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val count: Int? = null,
+    val services: List<ServiceItemDto> = emptyList(),
+) : Envelope
+
+@Serializable
+data class ExchangeCodeIn(val code: String)
+
+@Serializable
+data class CancelAuthIn(val nonce: String)

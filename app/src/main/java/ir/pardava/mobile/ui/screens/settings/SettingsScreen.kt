@@ -7,10 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,10 +25,15 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +46,8 @@ import ir.pardava.mobile.core.FontScale
 import ir.pardava.mobile.core.ThemeMode
 import ir.pardava.mobile.ui.components.LanguageSwitchRow
 import ir.pardava.mobile.ui.components.SettingsSection
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * User-facing settings only: language (fa default / en), theme (system / light /
@@ -46,8 +58,16 @@ import ir.pardava.mobile.ui.components.SettingsSection
 @Composable
 fun SettingsScreen(app: PardavaApp, onBack: () -> Unit) {
     val settings by app.settings.collectAsStateWithLifecycle()
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var checkingBusy by remember { mutableStateOf(false) }
+    var updateFound by remember { mutableStateOf<ir.pardava.mobile.data.dto.LatestVersionDto?>(null) }
+    var upToDate by remember { mutableStateOf(false) }
+    var downloading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
@@ -67,6 +87,46 @@ fun SettingsScreen(app: PardavaApp, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
         ) {
+            // ---- update check (in-app updates, served by pardava.ir) ----
+            SettingsSection(title = stringResource(R.string.update_section)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                    Text(
+                        stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Button(
+                        onClick = {
+                            checkingBusy = true
+                            scope.launch(Dispatchers.Main) {
+                                try {
+                                    val latest = ir.pardava.mobile.core.UpdateManager.check(app.api)
+                                    if (latest != null && ir.pardava.mobile.core.UpdateManager.isNewer(
+                                            latest, BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME,
+                                        )
+                                    ) {
+                                        updateFound = latest
+                                    } else {
+                                        upToDate = true
+                                    }
+                                } finally {
+                                    checkingBusy = false
+                                }
+                            }
+                        },
+                        enabled = !checkingBusy,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        if (checkingBusy) {
+                            CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(stringResource(R.string.update_check))
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
             // ---- language ----
             SettingsSection(title = stringResource(R.string.settings_language)) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
@@ -150,6 +210,47 @@ fun SettingsScreen(app: PardavaApp, onBack: () -> Unit) {
                 }
             }
             Spacer(Modifier.height(24.dp))
+        }
+
+        // ---- update result dialogs ----
+        updateFound?.let { latest ->
+            AlertDialog(
+                onDismissRequest = { if (!downloading) updateFound = null },
+                title = { Text(stringResource(R.string.update_title, latest.versionName ?: "")) },
+                text = {
+                    Text(
+                        latest.whatsNew?.ifBlank { null }
+                            ?: stringResource(R.string.update_body),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !downloading,
+                        onClick = {
+                            downloading = true
+                            ir.pardava.mobile.core.UpdateManager.download(context, latest.apkUrl ?: return@TextButton)
+                            scope.launch(Dispatchers.Main) {
+                                snackbar.showSnackbar(app.getString(R.string.update_downloading))
+                            }
+                            downloading = false
+                            updateFound = null
+                        },
+                    ) { Text(stringResource(R.string.update_download)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { updateFound = null }) { Text(stringResource(R.string.update_later)) }
+                },
+            )
+        }
+        if (upToDate && updateFound == null) {
+            AlertDialog(
+                onDismissRequest = { upToDate = false },
+                title = { Text(stringResource(R.string.update_uptodate_title)) },
+                text = { Text(stringResource(R.string.update_uptodate_body)) },
+                confirmButton = {
+                    TextButton(onClick = { upToDate = false }) { Text(stringResource(R.string.ok)) }
+                },
+            )
         }
     }
 }

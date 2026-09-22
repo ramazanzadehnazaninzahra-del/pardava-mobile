@@ -1,9 +1,15 @@
 package ir.pardava.mobile.data
 
+import ir.pardava.mobile.data.dto.ArticleDetailResponse
+import ir.pardava.mobile.data.dto.ArticlesResponse
+import ir.pardava.mobile.data.dto.CancelAuthIn
 import ir.pardava.mobile.data.dto.CompleteResponse
 import ir.pardava.mobile.data.dto.CourseDetailResponse
 import ir.pardava.mobile.data.dto.CoursesListResponse
+import ir.pardava.mobile.data.dto.ExchangeCodeIn
+import ir.pardava.mobile.data.dto.ExchangeResponse
 import ir.pardava.mobile.data.dto.GoogleLoginIn
+import ir.pardava.mobile.data.dto.HomeResponse
 import ir.pardava.mobile.data.dto.LeagueResponse
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LoginIn
@@ -11,8 +17,10 @@ import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestIn
 import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.OtpVerifyIn
+import ir.pardava.mobile.data.dto.ServicesResponse
 import ir.pardava.mobile.data.dto.SimpleOkResponse
 import ir.pardava.mobile.data.dto.TokenResponse
+import ir.pardava.mobile.data.dto.VersionResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -79,4 +87,31 @@ interface PardavaApi {
         @Path("slug") slug: String,
         @Path("lessonId") lessonId: Long,
     ): CompleteResponse
+
+    /* ---- mobile service (https://pardava.ir/api/mobile) — version sync,
+     *      content aggregate, articles and the Google web-bridge exchange ---- */
+
+    @GET("api/mobile/version")
+    suspend fun mobileVersion(): VersionResponse
+
+    @GET("api/mobile/home")
+    suspend fun mobileHome(): HomeResponse
+
+    @GET("api/mobile/services")
+    suspend fun mobileServices(): ServicesResponse
+
+    @GET("api/mobile/articles")
+    suspend fun mobileArticles(
+        @Query("limit") limit: Int = 30,
+        @Query("offset") offset: Int = 0,
+    ): ArticlesResponse
+
+    @GET("api/mobile/articles/{key}")
+    suspend fun mobileArticle(@Path("key") key: String): ArticleDetailResponse
+
+    @POST("api/mobile/auth/exchange")
+    suspend fun exchangeCode(@Body body: ExchangeCodeIn): ExchangeResponse
+
+    @POST("api/mobile/auth/cancel")
+    suspend fun cancelAuth(@Body body: CancelAuthIn): SimpleOkResponse
 }

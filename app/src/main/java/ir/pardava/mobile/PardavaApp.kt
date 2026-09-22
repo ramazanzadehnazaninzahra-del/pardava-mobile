@@ -36,6 +36,22 @@ class PardavaApp : Application() {
     private val _settings = MutableStateFlow(AppSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
+    /**
+     * One-time exchange code delivered by the pardava://auth/callback deep link
+     * after the Google web-bridge flow completes on pardava.ir. Consumed by the
+     * navigation host which swaps the code for a real pdv_ session token.
+     */
+    private val _pendingAuthCode = MutableStateFlow<String?>(null)
+    val pendingAuthCode: StateFlow<String?> = _pendingAuthCode.asStateFlow()
+
+    fun postAuthCode(code: String) {
+        _pendingAuthCode.value = code
+    }
+
+    fun consumeAuthCode() {
+        _pendingAuthCode.value = null
+    }
+
     override fun onCreate() {
         super.onCreate()
         store = TokenStore(this)
@@ -79,4 +95,17 @@ class PardavaApp : Application() {
     fun setFontScale(scale: String) {
         appScope.launch { store.setFontScale(scale) }
     }
+
+    /** Build-time identity for the in-app update pipeline. */
+    val versionCode: Int get() = BuildConfig.VERSION_CODE
+    val versionName: String get() = BuildConfig.VERSION_NAME
+
+    /** Resolve a site-relative path against the active site root. */
+    fun siteUrl(path: String): String {
+        if (path.startsWith("http://") || path.startsWith("https://")) return path
+        val root = session.baseUrl.trimEnd('/')
+        return if (path.startsWith("/")) "$root$path" else "$root/$path"
+    }
+
+    fun applicationContextCompat(): android.content.Context = this
 }
