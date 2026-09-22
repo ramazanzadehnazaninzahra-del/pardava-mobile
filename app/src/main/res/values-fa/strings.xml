@@ -113,4 +113,26 @@
     <string name="settings_about_app">%1$s — پلتفرم دوبیتهٔ برنامه‌نویسی و هوش مصنوعی.</string>
     <string name="settings_version">نسخهٔ %1$s</string>
     <string name="settings_about_site">pardava.ir</string>
+    <string name="nav_home">خانه</string>
+    <string name="nav_services">خدمات</string>
+    <string name="nav_articles">مقالات</string>
+    <string name="home_courses">دوره‌های تازه</string>
+    <string name="home_services">سرویس‌های پردآوا</string>
+    <string name="home_all_services">همهٔ %1$s سرویس</string>
+    <string name="home_articles">تازه‌ترین مقالات</string>
+    <string name="league_card">لیگ پردآوا</string>
+    <string name="league_card_hint">جلسه‌ها را کامل کن و صدرنشین شو</string>
+    <string name="articles_empty">هنوز مقاله‌ای منتشر نشده است</string>
+    <string name="article_reader">مقاله</string>
+    <string name="update_section">به‌روزرسانی</string>
+    <string name="update_check">بررسی نسخهٔ جدید</string>
+    <string name="update_title">نسخهٔ %1$s آماده است</string>
+    <string name="update_body">نسخهٔ جدید اپلیکیشن پردآوا منتشر شده است.</string>
+    <string name="update_download">دانلود و نصب</string>
+    <string name="update_downloading">دانلود آغاز شد؛ پس از اتمام از اعلان، نصب را تأیید کنید.</string>
+    <string name="update_later">بعداً</string>
+    <string name="update_uptodate_title">به‌روز هستید</string>
+    <string name="update_uptodate_body">شما آخرین نسخهٔ اپلیکیشن پردآوا را دارید.</string>
+    <string name="google_no_browser">مرورگری برای ورود با گوگل پیدا نشد.</string>
+    <string name="google_sign_in_hint">در صفحهٔ سایت وارد شوید؛ خودکار به اپ برمی‌گردید.</string>
 </resources>

@@ -15,52 +15,65 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import ir.pardava.mobile.R
 
-/* ---- Brand palette (indigo → violet, amber accents) ---- */
-val Indigo700 = Color(0xFF4338CA)
-val Indigo600 = Color(0xFF4F46E5)
-val Indigo200 = Color(0xFFC7D2FE)
-val Violet500 = Color(0xFF8B5CF6)
-val Amber500 = Color(0xFFF59E0B)
-val Emerald500 = Color(0xFF10B981)
-val Rose600 = Color(0xFFDC2626)
-val Sky500 = Color(0xFF0EA5E9)
+/* ---- Pardava brand palette — exact values from pardava.ir/static/style.css ---- */
+val BrandBlue = Color(0xFF2563EB)       /* light --accent */
+val BrandBlueDark = Color(0xFF3B82F6)   /* dark --accent / theme-color */
+val BrandTeal = Color(0xFF12C2B0)       /* site highlight accent */
+val BrandMint = Color(0xFF4CEBB4)
+
+/* light: --bg #f4f6fa · --bg-card #ffffff · --text #1a2332 · --text-dim #5a6d85 */
+val SiteLightBg = Color(0xFFF4F6FA)
+val SiteLightCard = Color(0xFFFFFFFF)
+val SiteLightCardHover = Color(0xFFF0F4FA)
+val SiteLightText = Color(0xFF1A2332)
+val SiteLightDim = Color(0xFF5A6D85)
+val SiteLightOutline = Color(0xFFDDE4EE)
+
+/* dark: --bg #0a0e17 · --bg-card #151d2e · --bg-elevated #111827 · --text #e8edf5 · --text-dim #8b9cb5 */
+val SiteDarkBg = Color(0xFF0A0E17)
+val SiteDarkCard = Color(0xFF151D2E)
+val SiteDarkElevated = Color(0xFF111827)
+val SiteDarkCardHover = Color(0xFF1A2438)
+val SiteDarkText = Color(0xFFE8EDF5)
+val SiteDarkDim = Color(0xFF8B9CB5)
+val SiteDarkOutline = Color(0xFF253149)
 
 private val LightColors = lightColorScheme(
-    primary = Indigo600,
+    primary = BrandBlue,
     onPrimary = Color.White,
-    primaryContainer = Indigo200,
-    onPrimaryContainer = Color(0xFF1E1B4B),
-    secondary = Violet500,
+    primaryContainer = Color(0xFFD6E4FF),
+    onPrimaryContainer = Color(0xFF0B2A6B),
+    secondary = BrandTeal,
     onSecondary = Color.White,
-    tertiary = Emerald500,
+    tertiary = Color(0xFF0E9384),
     onTertiary = Color.White,
-    background = Color(0xFFF8FAFC),
-    onBackground = Color(0xFF0F172A),
-    surface = Color.White,
-    onSurface = Color(0xFF0F172A),
-    surfaceVariant = Color(0xFFEEF2FF),
-    onSurfaceVariant = Color(0xFF475569),
-    outline = Color(0xFFCBD5E1),
-    error = Rose600,
+    background = SiteLightBg,
+    onBackground = SiteLightText,
+    surface = SiteLightCard,
+    onSurface = SiteLightText,
+    surfaceVariant = SiteLightCardHover,
+    onSurfaceVariant = SiteLightDim,
+    outline = SiteLightOutline,
+    error = Color(0xFFDC2626),
     onError = Color.White,
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF818CF8),
-    onPrimary = Color(0xFF1E1B4B),
-    primaryContainer = Color(0xFF3730A3),
-    onPrimaryContainer = Indigo200,
-    secondary = Color(0xFFA78BFA),
-    onSecondary = Color(0xFF1E1B4B),
-    tertiary = Color(0xFF34D399),
-    onTertiary = Color(0xFF064E3B),
-    background = Color(0xFF0B1220),
-    onBackground = Color(0xFFE2E8F0),
-    surface = Color(0xFF111A2E),
-    onSurface = Color(0xFFE2E8F0),
-    surfaceVariant = Color(0xFF1E293B),
-    onSurfaceVariant = Color(0xFF94A3B8),
-    outline = Color(0xFF334155),
+    primary = BrandBlueDark,
+    onPrimary = Color(0xFF06122E),
+    primaryContainer = Color(0xFF153064),
+    onPrimaryContainer = Color(0xFFD6E4FF),
+    secondary = BrandTeal,
+    onSecondary = Color(0xFF06122E),
+    tertiary = BrandMint,
+    onTertiary = Color(0xFF06122E),
+    background = SiteDarkBg,
+    onBackground = SiteDarkText,
+    surface = SiteDarkCard,
+    onSurface = SiteDarkText,
+    surfaceVariant = SiteDarkCardHover,
+    onSurfaceVariant = SiteDarkDim,
+    outline = SiteDarkOutline,
     error = Color(0xFFF87171),
     onError = Color(0xFF450A0A),
 )

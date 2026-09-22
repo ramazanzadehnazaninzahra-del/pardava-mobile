@@ -113,4 +113,26 @@
     <string name="settings_about_app">%1$s — bilingual programming &amp; AI platform.</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_site">pardava.ir</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_services">Services</string>
+    <string name="nav_articles">Articles</string>
+    <string name="home_courses">Fresh courses</string>
+    <string name="home_services">Pardava services</string>
+    <string name="home_all_services">All %1$s services</string>
+    <string name="home_articles">Latest articles</string>
+    <string name="league_card">Pardava League</string>
+    <string name="league_card_hint">Complete lessons and top the board</string>
+    <string name="articles_empty">No articles published yet</string>
+    <string name="article_reader">Article</string>
+    <string name="update_section">Updates</string>
+    <string name="update_check">Check for updates</string>
+    <string name="update_title">Version %1$s available</string>
+    <string name="update_body">A new version of the Pardava app is ready.</string>
+    <string name="update_download">Download &amp; install</string>
+    <string name="update_downloading">Download started; confirm the install from the notification when done.</string>
+    <string name="update_later">Later</string>
+    <string name="update_uptodate_title">You are up to date</string>
+    <string name="update_uptodate_body">You already have the latest version of the Pardava app.</string>
+    <string name="google_no_browser">No browser found for Google sign-in.</string>
+    <string name="google_sign_in_hint">Sign in on the web page; you will return to the app automatically.</string>
 </resources>

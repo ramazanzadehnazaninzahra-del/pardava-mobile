@@ -1,5 +1,6 @@
 package ir.pardava.mobile
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,9 +20,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val app = application as PardavaApp
+        handleDeepLink(intent)
         setContent {
-            val settings by app.settings.collectAsStateWithLifecycle()
+            val settings by (application as PardavaApp).settings.collectAsStateWithLifecycle()
             val darkTheme = when (settings.themeMode) {
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
@@ -40,7 +41,26 @@ class MainActivity : AppCompatActivity() {
                 darkTheme = darkTheme,
                 fontScale = FontScale.factor(settings.fontScale),
             ) {
-                PardavaNav(app = app)
+                PardavaNav(app = application as PardavaApp)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    /**
+     * pardava://auth/callback?code=… — the Google web-bridge return path.
+     * The code is parked on the Application object; the nav host exchanges it.
+     */
+    private fun handleDeepLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "pardava" && data.host == "auth") {
+            val code = data.getQueryParameter("code")
+            if (!code.isNullOrBlank()) {
+                (application as PardavaApp).postAuthCode(code)
             }
         }
     }

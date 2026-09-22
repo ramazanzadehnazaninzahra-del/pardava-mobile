@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -56,7 +57,7 @@ import ir.pardava.mobile.ui.screens.courses.SimpleVmFactory
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaderboardScreen(app: PardavaApp) {
+fun LeaderboardScreen(app: PardavaApp, onBack: (() -> Unit)? = null) {
     val vm: LeagueViewModel = viewModel(factory = SimpleVmFactory(app.api) { LeagueViewModel(it) })
     val state by vm.state.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
@@ -68,12 +69,22 @@ fun LeaderboardScreen(app: PardavaApp) {
         is LeagueUiState.Loading -> LoadingBox()
         is LeagueUiState.Failure -> ErrorState(message = s.message, onRetry = { vm.load(force = true) })
         is LeagueUiState.Ready -> Column(Modifier.fillMaxSize()) {
-            Text(
-                stringResource(R.string.leaderboard_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    androidx.compose.material3.IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                        )
+                    }
+                }
+                Text(
+                    stringResource(R.string.leaderboard_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = if (onBack != null) 0.dp else 16.dp, top = 12.dp),
+                )
+            }
             s.scopeTitle?.let {
                 Text(
                     it,
