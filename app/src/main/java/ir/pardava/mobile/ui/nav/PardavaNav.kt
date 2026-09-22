@@ -21,33 +21,36 @@ import ir.pardava.mobile.ui.components.MainScaffold
 import ir.pardava.mobile.ui.screens.course.CourseScreen
 import ir.pardava.mobile.ui.screens.lesson.LessonScreen
 import ir.pardava.mobile.ui.screens.login.LoginScreen
-import ir.pardava.mobile.ui.screens.quiz.QuizScreen
+import ir.pardava.mobile.ui.screens.settings.SettingsScreen
 
 object Routes {
-    const val LOGIN = "login"
     const val MAIN = "main"
+    const val LOGIN = "login"
+    const val SETTINGS = "settings"
     const val COURSE = "course/{slug}"
-    const val LESSON = "lesson/{courseSlug}/{lessonSlug}"
-    const val QUIZ = "quiz/{courseSlug}/{lessonSlug}/{quizId}"
+    const val LESSON = "lesson/{slug}/{lessonId}"
 
     fun course(slug: String) = "course/$slug"
-    fun lesson(courseSlug: String, lessonSlug: String) = "lesson/$courseSlug/$lessonSlug"
-    fun quiz(courseSlug: String, lessonSlug: String, quizId: Long) = "quiz/$courseSlug/$lessonSlug/$quizId"
+    fun lesson(slug: String, lessonId: Long) = "lesson/$slug/$lessonId"
 }
 
+/**
+ * Guest-first navigation: the app starts on MAIN whether or not the user is
+ * signed in — browsing courses, course pages and the league needs no account.
+ * The login screen is only pushed when an action requires a session
+ * (enrolling, opening locked lessons, completing lessons, the profile tab).
+ */
 @Composable
 fun PardavaNav(app: PardavaApp) {
     val nav = rememberNavController()
     var startReady by remember { mutableStateOf(false) }
-    var startRoute by remember { mutableStateOf(Routes.MAIN) }
 
     LaunchedEffect(Unit) {
         app.session.awaitReady()
-        startRoute = if (app.session.isSignedIn) Routes.MAIN else Routes.LOGIN
         startReady = true
-        // Auto-refresh chain exhausted → force re-login anywhere in the app.
+        // Dead session token discovered mid-app → drop the stale profile state.
         app.api.onSessionExpired = {
-            nav.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
+            // Session is already cleared; screens observe isSignedIn via refresh hooks.
         }
     }
 
@@ -58,21 +61,28 @@ fun PardavaNav(app: PardavaApp) {
         return
     }
 
-    NavHost(navController = nav, startDestination = startRoute) {
-
-        composable(Routes.LOGIN) {
-            LoginScreen(
-                app = app,
-                onSignedIn = {
-                    nav.navigate(Routes.MAIN) { popUpTo(0) { inclusive = true } }
-                },
-            )
-        }
+    NavHost(navController = nav, startDestination = Routes.MAIN) {
 
         composable(Routes.MAIN) {
             MainScaffold(
                 app = app,
                 onOpenCourse = { slug -> nav.navigate(Routes.course(slug)) },
+                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
+            )
+        }
+
+        composable(Routes.LOGIN) {
+            LoginScreen(
+                app = app,
+                onSignedIn = { nav.popBackStack() },
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                app = app,
+                onBack = { nav.popBackStack() },
             )
         }
 
@@ -84,44 +94,24 @@ fun PardavaNav(app: PardavaApp) {
                 app = app,
                 slug = entry.arguments?.getString("slug") ?: "",
                 onBack = { nav.popBackStack() },
-                onOpenLesson = { courseSlug, lessonSlug ->
-                    nav.navigate(Routes.lesson(courseSlug, lessonSlug))
-                },
+                onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
             )
         }
 
         composable(
             Routes.LESSON,
             arguments = listOf(
-                navArgument("courseSlug") { type = NavType.StringType },
-                navArgument("lessonSlug") { type = NavType.StringType },
+                navArgument("slug") { type = NavType.StringType },
+                navArgument("lessonId") { type = NavType.LongType },
             ),
         ) { entry ->
             LessonScreen(
                 app = app,
-                courseSlug = entry.arguments?.getString("courseSlug") ?: "",
-                lessonSlug = entry.arguments?.getString("lessonSlug") ?: "",
+                slug = entry.arguments?.getString("slug") ?: "",
+                lessonId = entry.arguments?.getLong("lessonId") ?: 0L,
                 onBack = { nav.popBackStack() },
-                onOpenQuiz = { course, lesson, quizId ->
-                    nav.navigate(Routes.quiz(course, lesson, quizId))
-                },
-            )
-        }
-
-        composable(
-            Routes.QUIZ,
-            arguments = listOf(
-                navArgument("courseSlug") { type = NavType.StringType },
-                navArgument("lessonSlug") { type = NavType.StringType },
-                navArgument("quizId") { type = NavType.LongType },
-            ),
-        ) { entry ->
-            QuizScreen(
-                app = app,
-                courseSlug = entry.arguments?.getString("courseSlug") ?: "",
-                lessonSlug = entry.arguments?.getString("lessonSlug") ?: "",
-                quizId = entry.arguments?.getLong("quizId") ?: 0L,
-                onBack = { nav.popBackStack() },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
             )
         }
     }

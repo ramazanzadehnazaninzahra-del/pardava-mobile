@@ -4,17 +4,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Leaderboard
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,10 +36,20 @@ private data class TabSpec(
     val content: @Composable () -> Unit,
 )
 
-/** Main bottom-tab scaffold: Courses / Leaderboard / Profile. */
+/**
+ * Main bottom-tab scaffold: Courses / League / Profile, with a brand top bar
+ * and a shortcut into Settings. Uses rememberSaveable so tab state survives
+ * the recreation caused by language switching.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScaffold(app: PardavaApp, onOpenCourse: (String) -> Unit) {
-    var tab by remember { mutableIntStateOf(0) }
+fun MainScaffold(
+    app: PardavaApp,
+    onOpenCourse: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenLogin: () -> Unit,
+) {
+    var tab by rememberSaveable { mutableIntStateOf(0) }
 
     val tabs = listOf(
         TabSpec(stringResource(R.string.nav_courses), Icons.Filled.School) {
@@ -44,11 +59,24 @@ fun MainScaffold(app: PardavaApp, onOpenCourse: (String) -> Unit) {
             LeaderboardScreen(app = app)
         },
         TabSpec(stringResource(R.string.nav_profile), Icons.Filled.Person) {
-            ProfileScreen(app = app)
+            ProfileScreen(app = app, onOpenLogin = onOpenLogin, onOpenSettings = onOpenSettings)
         },
     )
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
         bottomBar = {
             NavigationBar {
                 tabs.forEachIndexed { index, spec ->

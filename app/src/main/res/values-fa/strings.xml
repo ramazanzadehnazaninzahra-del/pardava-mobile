@@ -4,124 +4,108 @@
 
     <!-- Generic -->
     <string name="retry">تلاش دوباره</string>
-    <string name="cancel">انصراف</string>
     <string name="ok">باشه</string>
-    <string name="loading">در حال بارگذاری…</string>
+    <string name="back">بازگشت</string>
+    <string name="error_title">خطا</string>
     <string name="error_generic">مشکلی پیش آمد. دوباره تلاش کنید.</string>
-    <string name="error_network">به سرور دسترسی نیست. اتصال اینترنت را بررسی کنید.</string>
-    <string name="error_unauthorized">نشست شما منقضی شده است. دوباره وارد شوید.</string>
-    <string name="error_locked_content">این محتوا پس از تسلط بر جلسهٔ قبلی باز می‌شود.</string>
+    <string name="error_locked_content">این جلسه پس از تکمیل جلسهٔ قبلی باز می‌شود. ترتیب را رعایت کنید تا امتیاز کامل بگیرید.</string>
 
     <!-- Language -->
-    <string name="language_fa">فارسی</string>
-    <string name="language_en">English</string>
     <string name="switch_language">تغییر زبان</string>
-
-    <!-- Login -->
-    <string name="login_title">ورود به پردآوا</string>
-    <string name="login_subtitle">برنامه‌نویسی و هوش مصنوعی را به زبان خودتان یاد بگیرید.</string>
-    <string name="phone_label">شمارهٔ موبایل</string>
-    <string name="phone_hint">۰۹xxxxxxxxx</string>
-    <string name="request_code">ارسال کد</string>
-    <string name="code_label">کد تأیید</string>
-    <string name="code_hint">کد ۶ رقمی</string>
-    <string name="verify_code">تأیید و ورود</string>
-    <string name="code_sent_to">کد به %1$s ارسال شد · اعتبار %2$d دقیقه</string>
-    <string name="dev_code_hint">کد حالت توسعه: %1$s</string>
-    <string name="google_sign_in">ورود با گوگل</string>
-    <string name="google_not_configured">ورود با گوگل به تنظیمات Firebase نیاز دارد (به‌زودی).</string>
-    <string name="invalid_phone">لطفاً یک شمارهٔ موبایل معتبر وارد کنید.</string>
-    <string name="invalid_code">لطفاً کد ۶ رقمی را وارد کنید.</string>
-    <string name="edit_number">اصلاح شماره</string>
-    <string name="server_settings">آدرس سرور</string>
-    <string name="server_url_label">نشانی پایه (http://…)</string>
-    <string name="server_url_save">ذخیرهٔ آدرس سرور</string>
-    <string name="server_url_saved">آدرس سرور ذخیره شد</string>
-    <string name="server_url_invalid">نشانی باید با http:// یا https:// شروع شود</string>
 
     <!-- Bottom nav -->
     <string name="nav_courses">دوره‌ها</string>
-    <string name="nav_leaderboard">رتبه‌بندی</string>
+    <string name="nav_leaderboard">لیگ</string>
     <string name="nav_profile">پروفایل</string>
 
     <!-- Courses -->
-    <string name="courses_title">دوره‌ها</string>
-    <string name="lessons_count">%1$d جلسه</string>
-    <string name="chapters_count">%1$d فصل</string>
-    <string name="level_beginner">مقدماتی</string>
-    <string name="level_intermediate">متوسط</string>
-    <string name="level_advanced">پیشرفته</string>
+    <string name="courses_title">دوره‌های پردآوا</string>
+    <string name="courses_subtitle">برنامه‌نویسی و هوش مصنوعی را قدم‌به‌قدم یاد بگیرید؛ مرور دوره‌ها بدون حساب کاربری آزاد است.</string>
+    <string name="courses_empty_title">هنوز دوره‌ای منتشر نشده است</string>
+    <string name="courses_empty_subtitle">به‌زودی دوره‌های تازه اینجا دیده می‌شوند.</string>
+    <string name="lessons_word">جلسه</string>
+    <string name="minutes_word">دقیقه</string>
+    <string name="points_word">امتیاز</string>
+    <string name="points_short">امتیاز</string>
+    <string name="badge_free">رایگان</string>
+    <string name="badge_paid">ویژه</string>
+    <string name="badge_enrolled">ثبت‌نام شده</string>
+    <string name="badge_preview">پیش‌نمایش</string>
     <string name="locked_lesson">قفل</string>
     <string name="completed_lesson">تکمیل شده</string>
-    <string name="quiz_passed">آزمون قبول</string>
-    <string name="unlock_watch">تماشای دست‌کم %1$d%% ویدیو</string>
-    <string name="unlock_quiz">قبولی در آزمون با نمرهٔ دست‌کم %1$d%%</string>
-    <string name="start_lesson">شروع جلسه</string>
-    <string name="continue_lesson">ادامهٔ جلسه</string>
-    <string name="review_lesson">مرور جلسه</string>
-    <string name="fallback_translation_notice">این بخش هنوز ترجمه نشده است؛ نسخهٔ اصلی نمایش داده می‌شود.</string>
+
+    <!-- Course -->
+    <string name="course_title">دوره</string>
+    <string name="course_progress">پیشرفت شما در دوره</string>
+    <string name="enroll_free">ثبت‌نام رایگان در دوره</string>
+    <string name="purchase_request">درخواست خرید دوره</string>
+    <string name="purchase_pending">درخواست خرید شما در انتظار تأیید است</string>
+    <string name="toman">تومان</string>
 
     <!-- Lesson -->
-    <string name="lesson_video">ویدیو</string>
     <string name="lesson_body">جلسه</string>
-    <string name="lesson_code">نمونه کد</string>
-    <string name="lesson_exercise">تمرین</string>
-    <string name="lesson_quiz">آزمون</string>
-    <string name="subtitles_none">زیرنویسی موجود نیست</string>
-    <string name="subtitle_track">زیرنویس</string>
-    <string name="progress_reported">پیشرفت ذخیره شد</string>
+    <string name="lesson_completed_notice">این جلسه را تکمیل کرده‌اید. امتیاز آن ثبت شده است.</string>
+    <string name="complete_lesson">تکمیل جلسه و دریافت امتیاز</string>
+    <string name="preview_notice">این جلسه پیش‌نمایش رایگان است. برای دیدن همهٔ جلسه‌ها و ثبت پیشرفت، وارد حساب شوید.</string>
+    <string name="sign_in_cta">ورود / ثبت‌نام</string>
+    <string name="lesson_file">دانلود فایل جلسه</string>
+    <string name="prev_lesson">جلسهٔ قبل</string>
+    <string name="next_lesson">جلسهٔ بعد</string>
 
-    <!-- Quiz -->
-    <string name="quiz_start_title">%1$s</string>
-    <string name="quiz_meta">%1$d سؤال · %2$d دقیقه · حد قبولی %3$d%% · %4$d از %5$d تلاش مصرف شده</string>
-    <string name="quiz_start">شروع آزمون</string>
-    <string name="quiz_resume">ادامهٔ آزمون</string>
-    <string name="quiz_time_left">زمان باقی‌مانده: %1$s</string>
-    <string name="quiz_submit">ثبت پاسخ‌ها</string>
-    <string name="quiz_submit_confirm">پاسخ‌ها ثبت شود و نتیجه را ببینید؟</string>
-    <string name="quiz_answer_here">پاسخ خود را بنویسید (کد پایتون)</string>
-    <string name="quiz_question_of">سؤال %1$d از %2$d</string>
-    <string name="quiz_score">نمره: %1$d%%</string>
-    <string name="quiz_passed_result">قبول شدید! 🎉</string>
-    <string name="quiz_failed_result">هنوز قبول نشده‌اید</string>
-    <string name="quiz_pass_line">حد قبولی: %1$d%%</string>
-    <string name="quiz_correct_answer">پاسخ صحیح</string>
-    <string name="quiz_explanation">توضیح</string>
-    <string name="quiz_correct">درست</string>
-    <string name="quiz_wrong">نادرست</string>
-    <string name="quiz_back_to_lesson">بازگشت به جلسه</string>
-    <string name="quiz_retake">تلاش دوباره</string>
-    <string name="quiz_no_attempts">تلاشی برای این آزمون باقی نمانده است.</string>
-    <string name="quiz_expired">زمان این تلاش به پایان رسید و بسته شد.</string>
-    <string name="quiz_true">درست</string>
-    <string name="quiz_false">نادرست</string>
-    <string name="xp_earned">%1$d+ امتیاز</string>
-    <string name="new_achievement">دستاورد جدید: %1$s</string>
+    <!-- Login -->
+    <string name="login_subtitle">برنامه‌نویسی و هوش مصنوعی را به زبان خودتان یاد بگیرید.</string>
+    <string name="login_method_phone">شمارهٔ موبایل</string>
+    <string name="login_method_password">نام کاربری</string>
+    <string name="phone_label">شمارهٔ موبایل</string>
+    <string name="phone_hint">۰۹xxxxxxxxx</string>
+    <string name="request_code">ارسال کد تأیید</string>
+    <string name="code_label">کد تأیید</string>
+    <string name="code_hint">کد پیامک‌شده</string>
+    <string name="verify_code">تأیید و ورود</string>
+    <string name="resend_code">ارسال دوبارهٔ کد</string>
+    <string name="resend_in">ارسال دوباره تا %1$d ثانیه</string>
+    <string name="edit_number">اصلاح شماره</string>
+    <string name="username_label">نام کاربری</string>
+    <string name="password_label">رمز عبور</string>
+    <string name="login_password_cta">ورود</string>
+    <string name="google_sign_in">ورود با گوگل</string>
+    <string name="google_needs_config">ورود با گوگل به تنظیمات Firebase (google-services.json و شناسهٔ سرویس گوگل) نیاز دارد. تا آن زمان از ورود با شمارهٔ موبایل استفاده کنید.</string>
+    <string name="login_guest_note">بدون ورود هم می‌توانید دوره‌ها و رتبه‌بندی را ببینید؛ ورود فقط برای ثبت‌نام در دوره‌ها و ثبت پیشرفت لازم است.</string>
+
+    <!-- League -->
+    <string name="leaderboard_title">لیگ پردآوا</string>
+    <string name="league_all_courses">همهٔ دوره‌ها</string>
+    <string name="league_empty_title">لیگ هنوز شروع نشده است</string>
+    <string name="league_empty_subtitle">اولین نفر باشید: جلسه‌ها را تکمیل کنید تا امتیاز بگیرید و صدرنشین شوید.</string>
+    <string name="leaderboard_you">شما</string>
 
     <!-- Profile -->
-    <string name="profile_title">پروفایل من</string>
-    <string name="stats_xp">%1$d امتیاز</string>
-    <string name="stats_level">سطح %1$d</string>
-    <string name="stats_level_progress">%1$d از %2$d امتیاز تا سطح %3$d</string>
-    <string name="stats_streak">%1$d روز پیوسته 🔥</string>
-    <string name="stats_longest_streak">طولانی‌ترین زنجیره: %1$d روز</string>
-    <string name="stats_lessons_completed">%1$d جلسه تکمیل شده</string>
-    <string name="stats_quizzes_passed">%1$d آزمون قبول شده</string>
-    <string name="stats_rank">رتبهٔ جهانی #%1$d</string>
-    <string name="stats_perfect_quizzes">%1$d آزمون کامل</string>
-    <string name="achievements_title">دستاوردها</string>
-    <string name="achievements_earned_at">کسب شده در %1$s</string>
-    <string name="achievements_locked">هنوز کسب نشده</string>
+    <string name="guest_title">به پردآوا خوش آمدید</string>
+    <string name="sign_in_prompt">برای ثبت‌نام در دوره‌ها، ثبت پیشرفت، امتیاز و رتبه در لیگ وارد شوید.</string>
+    <string name="enrolled_courses">دورهٔ فعال</string>
     <string name="logout">خروج از حساب</string>
-    <string name="sign_in_prompt">برای ثبت پیشرفت، امتیاز و دستاوردها وارد شوید.</string>
 
-    <!-- Leaderboard -->
-    <string name="leaderboard_title">رتبه‌بندی</string>
-    <string name="scope_weekly">هفتگی</string>
-    <string name="scope_monthly">ماهانه</string>
-    <string name="scope_all">کلی</string>
-    <string name="leaderboard_empty">در این بازه هنوز امتیازی ثبت نشده. شما اول باشید!</string>
-    <string name="leaderboard_you">شما</string>
-    <string name="leaderboard_your_rank">رتبهٔ شما: #%1$d</string>
-    <string name="leaderboard_points">%1$d امتیاز</string>
+    <!-- Settings -->
+    <string name="settings_title">تنظیمات</string>
+    <string name="settings_language">زبان برنامه</string>
+    <string name="settings_language_hint">پیش‌فرض فارسی است؛ تغییر زبان صفحه را بازآغاز می‌کند.</string>
+    <string name="settings_theme">تم نمایش</string>
+    <string name="theme_system">سیستم</string>
+    <string name="theme_light">روشن</string>
+    <string name="theme_dark">تاریک</string>
+    <string name="settings_font">اندازهٔ فونت</string>
+    <string name="font_small">کوچک</string>
+    <string name="font_normal">متوسط</string>
+    <string name="font_large">بزرگ</string>
+    <string name="font_xlarge">خیلی بزرگ</string>
+    <string name="server_settings">آدرس سایت پردآوا</string>
+    <string name="server_url_label">نشانی سایت (https://…)</string>
+    <string name="server_url_save">ذخیره</string>
+    <string name="server_url_saved">آدرس ذخیره شد؛ لیست دوره‌ها از همین دامنه خوانده می‌شود.</string>
+    <string name="server_url_reset">بازگردانی پیش‌فرض</string>
+    <string name="server_url_hint">پیش‌فرض: pardava.ir — فقط برای سرور شخصی تغییر دهید.</string>
+    <string name="settings_about">درباره</string>
+    <string name="settings_about_app">%1$s — پلتفرم دوبیتهٔ برنامه‌نویسی و هوش مصنوعی.</string>
+    <string name="settings_version">نسخهٔ %1$s</string>
+    <string name="settings_about_site">pardava.ir</string>
 </resources>
