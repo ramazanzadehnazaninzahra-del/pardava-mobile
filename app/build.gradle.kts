@@ -27,14 +27,14 @@ android {
         applicationId = "ir.pardava.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.5.0"
+        versionCode = 5
+        versionName = "0.6.0"
         vectorDrawables { useSupportLibrary = true }
-        // Site Courses API prefix. Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://example.com/api/courses
-        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "https://pardava.ir/api/courses/"}\"")
-        // Gmail sign-in (Credential Manager): Web client ID from the Google Cloud
-        // project of pardava.ir. Empty default → the Gmail tab shows setup help and
-        // users fall back to the app-token tab. Override with -PpardavaGoogleClientId=…
+        // Base URL is the SITE ROOT; the app appends api/courses/… itself.
+        // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/
+        buildConfigField("String", "DEFAULT_BASE_URL", "\"${project.findProperty("pardavaBaseUrl") ?: "https://pardava.ir/"}\"")
+        // Web client id for Google Sign-In (empty until google-services.json is provisioned;
+        // the server endpoint POST api/courses/auth/google is already wired).
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${project.findProperty("pardavaGoogleClientId") ?: ""}\"")
     }
 
@@ -80,6 +80,7 @@ if (googleServicesFile.exists()) {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -99,8 +100,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.media3.exoplayer)
-    implementation(libs.media3.ui)
+    implementation(libs.coil.compose)
 
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)

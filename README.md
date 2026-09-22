@@ -1,119 +1,92 @@
 # پردآوا موبایل — pardava-mobile
 
-اپلیکیشن اندروید پلتفرم آموزشی **پردآوا** (برنامه‌نویسی و هوش مصنوعی، دوزبانه فارسی/انگلیسی).
-این ریپو مستقل است و مستقیماً با **Courses API سایت** (`https://pardava.ir/api/courses`) کار می‌کند.
+اپلیکیشن اندروید پلتفرم آموزشی **پردآوا** (برنامه‌نویسی و هوش مصنوعی).
+این ریپو مستقل است و با **Pardava Courses API** (`https://pardava.ir/api/courses`، نسخهٔ 1.1.0) کار می‌کند.
 
-> نسخهٔ فعلی: `0.5.0` — «اول مرور رایگان، ورود فقط وقت نیاز»
+> نسخهٔ فعلی: `0.5.0` (versionCode 3)
 
 ## امکانات
 
 | بخش | توضیح |
 |------|-------|
-| **مرور بدون حساب** | فهرست دوره‌ها، جزئیات و پیش‌نمایش درس‌های رایگان، جدول لیگ — همه بدون لاگین |
-| ورود (۴ روش) | رمز عبور سایت · کد پیامکی OTP (شماره‌های ایران) · **جیمیل** (Credential Manager) · **توکن اپ** از پروفایل سایت |
-| ثبت‌نام | ثبت‌نام رایگان با یک کلیک؛ دوره‌های پولی: «درخواست خرید» و پیگیری وضعیت تأیید ادمین |
-| درس | متن درس، فایل پیوست (دانلود با توکن + باز کردن از حافظه)، تکمیل درس و دریافت امتیاز، درس قبلی/بعدی |
-| لیگ | جدول امتیازات کل سایت + فیلتر هر دوره |
-| پروفایل | نام، امتیاز، تعداد دوره‌های فعال، خروج، تغییر زبان، تغییر آدرس سرور |
-| دوزبانه | fa پیش‌فرض (RTL) + en؛ سوییچ داخل اپ + ارسال `Accept-Language` |
+| مرور بدون حساب | فهرست دوره‌ها، صفحهٔ هر دوره، جلسات پیش‌نمایش و لیگ امتیازات **بدون لاگین** قابل استفاده‌اند |
+| دوره‌ها | کارت دوره با کاور، دسته/سطح/تعداد جلسه، نشان «رایگان/ویژه/ثبت‌نام‌شده»، Refresh |
+| جزئیات دوره | هدر گرادیانی، نوار پیشرفت برای فراگیر، CTA «ثبت‌نام رایگان» یا «درخواست خرید» (خرید ویژه با تأیید مدیر)، نقشهٔ جلسات با وضعیت قفل/پیش‌نمایش/تکمیل |
+| جلسه | متن جلسه با پاراگراف‌بندی، تکمیل جلسه و دریافت امتیاز، جلسهٔ قبل/بعد، دانلود پیوست در Downloads |
+| لیگ | رتبه‌بندی عمومی یا به‌تفکیک دوره با نشان طلا/نقره/برنز و «شما» |
+| ورود | OTP موبایل ایران (۰۹…) + نام کاربری/رمز + گوگل (Credential Manager؛ فعال پس از تنظیم Firebase) |
+| پروفایل | مهمان: دعوت به ورود؛ کاربر: نام/ایمیل/امتیاز/دوره‌های فعال/خروج |
+| تنظیمات | زبان (فارسی پیش‌فرض / English) · تم (سیستم/روشن/تاریک) · اندازهٔ فونت (۴ سطح) · آدرس سایت · درباره |
+| دوزبانه | fa پیش‌فرض (RTL) + en؛ سوییچ داخل اپ با per-app locales |
 
-نقشهٔ دسترسی درس‌ها (سمت سرور تعیین می‌شود): `open` آماده · `preview` پیش‌نمایش رایگان (حتی بی‌حساب) · `done` تکمیل‌شده · `enroll` نیاز به ثبت‌نام · `locked` قفل (ترتیبی).
+## قرارداد سرور (نکات مهم پیاده‌سازی)
+
+- همهٔ پاسخ‌ها **HTTP 200** هستند؛ موفقیت/خطا با پاکت `{ok, code, error, action}` مشخص می‌شود
+  (خطاهای CDN صفحهٔ HTML برمی‌گردانند — اپ این حالت را با پیام دوستانه می‌گیرد).
+- آدرس پایه، **ریشهٔ سایت** است (`https://pardava.ir/`) و مسیرها `api/courses/…` هستند؛
+  URL با اسلش پایانی (`/api/courses/`) پاسخ HTML می‌دهد — اپ همیشه بدون اسلش اضافه صدا می‌زند.
+- نشست با یک توکن یگانه (`pdv_…`) و هدر `Authorization: Bearer` است (no refresh flow).
+- جلسات با **شناسهٔ عددی** آدرس می‌شوند: `GET /{slug}/lessons/{lesson_id}`.
+- نشانی‌های نسبی (کاور/آواتار) با ریشهٔ سایت مطلق می‌شوند.
 
 ## معماری
 
 ```
 app/src/main/java/ir/pardava/mobile/
-├── core/        ApiClient (Retrofit+OkHttp، بازسازی روی تغییر سرور) · SessionManager · TokenStore (DataStore) · Fmt
-├── data/        PardavaApi (Retrofit) · dto/ (kotlinx.serialization + envelope {ok,…})
+├── core/        ApiClient (Retrofit+OkHttp، پاکت ok) · TokenStore/DataStore · Fmt
+├── data/        PardavaApi (Retrofit) · dto/ (kotlinx.serialization، همهٔ DTOها tolerant)
 ├── ui/
-│   ├── components/   MainScaffold (تب‌ها) · LanguageSwitchRow · ServerSettingsSection
-│   ├── nav/          Routes + NavHost (شروع همیشه عمومی، لاگین فقط push وقت نیاز)
-│   └── screens/      courses · course · lesson · league · profile · login
-└── test/        قرارداد API سایت روی MockWebServer (envelope، خطاها، مسیرها) + Fmt
+│   ├── components/   MainScaffold · Components (Loading/Error/Empty/Chips/Settings)
+│   ├── nav/          Routes + NavHost (مهمان‌محور: شروع از MAIN)
+│   └── screens/      courses · course · lesson · leaderboard · profile · login · settings
+└── test/        DtoParsing (JSON واقعی سرور) · UrlNormalization · Fmt
 ```
 
 - **Kotlin 2.0 + Jetpack Compose (Material 3)**، minSdk 24 / targetSdk 35
-- خطاها: پیام فارسی سرور عیناً نمایش داده می‌شود؛ `action` سرور (`login/enroll/purchase/…`) هدایت‌گر UI است
-- **Credential Manager** برای جیمیل؛ توکن نهایی: `Authorization: Bearer pdv_…` (+ `X-Api-Token`)
+- **Coil** برای کاورها، **DataStore** برای نشست/تنظیمات، **AppCompat per-app locales** برای زبان
+- بدون DI framework؛ همهٔ منطق‌های حساس سمت سرور است
 
 ## نصب نسخهٔ آماده (APK)
 
-فایل `Pardava-v0.5.0-release.apk` امضاشده است و روی اندروید ۷ به بالا نصب می‌شود:
+فایل `Pardava-v0.5.0-release.apk` امضاشده است و روی اندروید ۷ به بالا نصب می‌شود؛
+**روی نسخهٔ قبلی هم بدون حذف، مستقیم به‌روزرسانی می‌شود** (امضا یکسان است):
 
-1. فایل را به گوشی بدهید و بازش کنید؛ در پیام «نصب از منابع ناشناس» اجازه بدهید.
-2. اپ بدون حساب باز می‌شود و مستقیم به `https://pardava.ir/api/courses` وصل است — دوره‌ها را ببینید.
-3. برای ثبت‌نام: دکمهٔ **ورود** → یکی از ۴ روش. کاربران جیمیل فعلاً راحت‌ترین راه: ورود در سایت pardava.ir → پروفایل → «توکن اپ» → تب «توکن» در اپ.
-4. آدرس سرور از پایین صفحهٔ ورود یا پروفایل قابل تغییر است (پیش‌فرض همان pardava.ir).
+1. فایل را به گوشی بدهید و بازش کنید؛ اگر پیام «نصب از منابع ناشناس» آمد،
+   روی **تنظیمات → اجازه از این منبع** بزنید و برگردید و نصب را تأیید کنید.
+2. اگر «Play Protect» هشدار داد: **جزئیات بیشتر → نصب هر نوع (Still install)**.
+   این هشدار برای هر APK خارج از گوگل‌پلی طبیعی است؛ راه حذف کامل آن فقط انتشار از طریق Google Play است.
+3. اگر پیام «برنامه نصب نشد» (App not installed) دیدید:
+   - نسخهٔ 0.4.1 قدیمی را از قبل نصب کرده‌اید؟ اول حذفش کنید (versionCode قدیمی‌تر با امضای متفاوت قفل می‌کند؛ اینجا امضا یکی است، ولی حذفِ نسخه‌های خیلی قدیمی گاهی لازم است)،
+   - فضای خالی گوشی را چک کنید،
+   - APK را کامل دوباره دانلود کنید (دانلود ناقص رایج‌ترین علت است)،
+   - مطمئن شوید معماری گوشی (arm64) پشتیبانی می‌شود — این APK همهٔ ۴ معماری را دارد.
+4. برنامه را باز کنید — دوره‌ها بلافاصله بدون حساب نمایش داده می‌شوند.
 
-### رفع ارورها و هشدارهای نصب
-
-| پیام | علت | راه‌حل |
-|------|-----|--------|
-| «App not installed» بعد از به‌روزرسانی | نسخهٔ قبلی با امضای متفاوت نصب بوده | نسخهٔ قبلی را **حذف** کنید و دوباره نصب کنید (امضای v0.5.0 با نسخه‌های 0.4.x یکسان است، ولی اگر APK جعلی/دیگری نصب کرده‌اید حذف لازم است) |
-| «App not installed» | فضای کم / APK ناقص دانلود شده | حداقل ~۲۰۰MB فضا خالی کنید؛ فایل را دوباره بگیرید (حجم سالم ≈ ۲.۸MB) |
-| «Install blocked / منابع ناشناس» | نصب خارج از Play | Settings → اجازهٔ نصب برای همان مرورگر/فایل‌منیجر |
-| «Play Protect hasn't scanned» | اسکن ابری نشده | **More details → Install anyway**؛ اپ فقط مجوز `INTERNET` دارد |
-| «Blocked by Play Protect» | سیاست سخت‌گیرانه | Play Protect → Settings → اسکن را موقتاً خاموش/خنثی کنید (با احتیاط) |
-| هشدار نمی‌خواهم | ماهیت sideload | فقط انتشار در Google Play (حتی Internal testing) هشدارها را حذف می‌کند |
-
-> **امضای ریلیز**: `pardava-release.keystore` (alias `pardava`) + `keystore.properties` (gitignored).
-> SHA-1 امضا: `ac011be60913cfc58d99ae5533fc95ef99fda960`
-
-### فعال‌سازی ورود جیمیل در اپ (یک‌بار، برای مالک سایت)
-
-اپ از **Credential Manager** استفاده می‌کند و ID Token گوگل را به `POST /api/courses/auth/google` می‌فرستد
-(سرور باید همان client را قبول کند). قدم‌ها:
-
-1. در پروژهٔ Google Cloud **همان پروژه‌ای که pardava.ir استفاده می‌کند**، یک **OAuth 2.0 Client ID** از نوع *Web application* (اگر نیست) بگیرید.
-2. یک **Android client** بسازید با:
-   - Package name: `ir.pardava.mobile`
-   - SHA-1: `ac011be60913cfc58d99ae5533fc95ef99fda960`
-3. مقدار **Web client ID** را به build بدهید:
-
-```bash
-./gradlew assembleRelease -PpardavaGoogleClientId=XXXXXXXX.apps.googleusercontent.com
-```
-
-تا وقتی این کار انجام نشود، تب «جیمیل» راهنما نشان می‌دهد و مسیر «توکن اپ» کار می‌کند.
+> **امضای ریلیز**: `keystore.properties` (gitignored) مسیر/رمز keystore را نگه می‌دارد؛
+> `pardava-release.keystore` را مثل رمز عبور نگه دارید — بدون آن به‌روزرسانی با همان امضا ممکن نیست.
 
 ## ساخت
 
 ```bash
-./gradlew assembleDebug            # بیلد بدون هیچ رازی (keystore اختیاری است)
-./gradlew assembleRelease          # اگر keystore.properties باشد، امضاشده
-./gradlew testDebugUnitTest        # ۱۸ تست JVM (قرارداد API + Fmt)
+# وابستگی‌ها فقط از Maven Central و Google — بدون google-services.json هم build می‌شود
+./gradlew assembleDebug
 
-# تغییر سرور پیش‌فرض:
-./gradlew assembleRelease -PpardavaBaseUrl=https://example.com/api/courses/
+# نسخهٔ ریلیز (با keystore.properties امضاشده می‌شود)
+./gradlew assembleRelease
+
+# تست‌ها (شامل پارس JSON واقعیِ captured از سرور زنده)
+./gradlew testDebugUnitTest
 ```
 
-پیش‌فرض `DEFAULT_BASE_URL` = `https://pardava.ir/api/courses/`؛ برای سرور آزمایشی HTTP محلی،
-`network_security_config.xml` کلیرتکست را مجاز می‌داند (برای تولید HTTPS توصیهٔ اکید).
+تغییر آدرس پایه در زمان build:
 
-## CI
+```bash
+./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/
+./gradlew assembleDebug -PpardavaGoogleClientId=XXXXXXXX.apps.googleusercontent.com
+```
 
-`.github/workflows/android-ci.yml` → JDK 17 + Gradle: `assembleDebug` + `testDebugUnitTest`
-و آپلود APK دیباگ به‌صورت artifact.
+## نقشهٔ ادامه
 
-## مستندات پلتفرم
-
-معماری کامل، ERD و API در ریپوی اصلی: `github.com/ramazanzadehnazaninzahra-del/pardava`
-(فایل `docs/pardava-lms.md`) + مستند زندهٔ Courses API: `https://pardava.ir/api/courses/docs`
-
----
-
-# Pardava Mobile (English summary)
-
-Android app of the **Pardava** bilingual (Persian/English) programming & AI education platform.
-Standalone repository talking directly to the **site Courses API** (`https://pardava.ir/api/courses`).
-
-**v0.5.0 — “browse freely, sign in only when it matters”**: courses, course details, free-preview
-lessons and the league table are public. Four sign-in methods — site password, Iranian mobile OTP,
-**Gmail (Credential Manager)**, and the **app token** from the pardava.ir profile page. One-tap
-enrollment for free courses, purchase requests (admin approval) for paid ones, lesson text +
-token-authorized file downloads, mark-complete with points, prev/next navigation, and fa/en UI.
-
-Build: `./gradlew assembleDebug testDebugUnitTest`. Default API base is the production site;
-override with `-PpardavaBaseUrl`. Gmail sign-in needs a one-time Google Cloud setup — create an
-Android OAuth client for `ir.pardava.mobile` with SHA-1 `ac011be60913cfc58d99ae5533fc95ef99fda960`
-in the pardava.ir project and pass the Web client ID via `-PpardavaGoogleClientId`.
+- فعال‌سازی ورود گوگل با افزودن `google-services.json` + Web Client ID
+- انتشار در Google Play برای حذف کامل هشدارهای نصب
+- بات بله (Bale) طبق نقشهٔ راه پلتفرم

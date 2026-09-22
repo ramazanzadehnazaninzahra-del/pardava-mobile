@@ -1,116 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Default locale: English (fa lives in values-fa; the app defaults to fa at first launch). -->
 <resources>
     <string name="app_name">Pardava</string>
 
     <!-- Generic -->
     <string name="retry">Retry</string>
-    <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
-    <string name="loading">Loading…</string>
     <string name="back">Back</string>
+    <string name="error_title">Error</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
-    <string name="error_network">Cannot reach the server. Check your connection.</string>
-    <string name="error_unauthorized">Your session expired. Please sign in again.</string>
+    <string name="error_locked_content">This lesson unlocks after you complete the previous one. Follow the order to earn full points.</string>
 
     <!-- Language -->
-    <string name="language_fa">فارسی</string>
-    <string name="language_en">English</string>
-    <string name="switch_language">Switch language</string>
+    <string name="switch_language">Language</string>
+
+    <!-- Bottom nav -->
+    <string name="nav_courses">Courses</string>
+    <string name="nav_leaderboard">League</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Courses -->
+    <string name="courses_title">Pardava Courses</string>
+    <string name="courses_subtitle">Learn programming and AI step by step; browsing is free, no account needed.</string>
+    <string name="courses_empty_title">No published courses yet</string>
+    <string name="courses_empty_subtitle">New courses will appear here soon.</string>
+    <string name="lessons_word">lessons</string>
+    <string name="minutes_word">min</string>
+    <string name="points_word">points</string>
+    <string name="points_short">pts</string>
+    <string name="badge_free">Free</string>
+    <string name="badge_paid">Pro</string>
+    <string name="badge_enrolled">Enrolled</string>
+    <string name="badge_preview">Preview</string>
+    <string name="locked_lesson">Locked</string>
+    <string name="completed_lesson">Completed</string>
+
+    <!-- Course -->
+    <string name="course_title">Course</string>
+    <string name="course_progress">Your progress</string>
+    <string name="enroll_free">Enroll for free</string>
+    <string name="purchase_request">Request purchase</string>
+    <string name="purchase_pending">Your purchase request is pending approval</string>
+    <string name="toman">Toman</string>
+
+    <!-- Lesson -->
+    <string name="lesson_body">Lesson</string>
+    <string name="lesson_completed_notice">You completed this lesson. Points have been recorded.</string>
+    <string name="complete_lesson">Complete lesson &amp; earn points</string>
+    <string name="preview_notice">This is a free preview. Sign in to access all lessons and track progress.</string>
+    <string name="sign_in_cta">Sign in</string>
+    <string name="lesson_file">Download lesson file</string>
+    <string name="prev_lesson">Previous</string>
+    <string name="next_lesson">Next</string>
 
     <!-- Login -->
-    <string name="login_title">Sign in to Pardava</string>
-    <string name="login_subtitle">Browsing is free — sign in only to enroll and earn points.</string>
-    <string name="login_tab_password">Password</string>
-    <string name="login_tab_otp">SMS code</string>
-    <string name="login_tab_google">Gmail</string>
-    <string name="login_tab_token">Token</string>
-    <string name="username_label">Username</string>
-    <string name="password_label">Password</string>
-    <string name="login_button">Sign in</string>
+    <string name="login_subtitle">Learn programming and AI in your own language.</string>
+    <string name="login_method_phone">Phone</string>
+    <string name="login_method_password">Username</string>
     <string name="phone_label">Mobile number</string>
     <string name="phone_hint">09xxxxxxxxx</string>
     <string name="request_code">Send code</string>
     <string name="code_label">Verification code</string>
-    <string name="code_hint">6-digit code</string>
+    <string name="code_hint">SMS code</string>
     <string name="verify_code">Verify &amp; sign in</string>
-    <string name="code_sent_to">Code sent to %1$s · expires in %2$d min</string>
-    <string name="invalid_phone">Please enter a valid mobile number.</string>
-    <string name="invalid_code">Please enter the 6-digit code.</string>
+    <string name="resend_code">Resend code</string>
+    <string name="resend_in">Resend in %1$d s</string>
     <string name="edit_number">Edit number</string>
+    <string name="username_label">Username</string>
+    <string name="password_label">Password</string>
+    <string name="login_password_cta">Sign in</string>
     <string name="google_sign_in">Sign in with Google</string>
-    <string name="google_needs_setup">Gmail sign-in needs a one-time setup on the server owner’s Google Cloud console. Until then, use the Token tab.</string>
-    <string name="google_help_button">How to enable?</string>
-    <string name="google_help_title">Enabling Gmail sign-in</string>
-    <string name="google_help_body">One-time steps for the site owner: in the Google Cloud project of pardava.ir create an OAuth 2.0 Android client with package ir.pardava.mobile and the release APK’s SHA-1, then put the Web client ID into the app build (pardavaGoogleClientId). Alternatively, sign in with Gmail on pardava.ir in a browser and paste the app token from the profile page into the Token tab.</string>
-    <string name="google_token_fallback">No Gmail option? Sign in on pardava.ir in a browser and paste the app token from your profile page into the Token tab.</string>
-    <string name="google_no_account">No Google account found on this device.</string>
-    <string name="google_signin_failed">Google sign-in failed. Please try again.</string>
-    <string name="token_help">Gmail users: sign in at pardava.ir in a browser, open Profile → App token, generate it and paste it here.</string>
-    <string name="token_label">App token (pdv_…)</string>
-    <string name="token_validate">Save &amp; sign in</string>
-    <string name="server_settings">Server address</string>
-    <string name="server_url_label">API prefix (https://…/api/courses)</string>
-    <string name="server_url_save">Save server address</string>
-    <string name="server_url_saved">Server address saved</string>
-    <string name="server_url_invalid">The URL must start with http:// or https://</string>
-    <string name="server_url_hint">Default: https://pardava.ir/api/courses</string>
-
-    <!-- Bottom nav -->
-    <string name="nav_courses">Courses</string>
-    <string name="nav_league">League</string>
-    <string name="nav_profile">Profile</string>
-
-    <!-- Courses -->
-    <string name="courses_title">Courses</string>
-    <string name="courses_empty">No published courses yet. Please check back soon!</string>
-    <string name="lessons_count">%1$d lessons</string>
-    <string name="course_free">Free</string>
-    <string name="course_price">%1$s Tomans</string>
-    <string name="course_enrolled">Enrolled</string>
-    <string name="level_beginner">Beginner</string>
-    <string name="level_intermediate">Intermediate</string>
-    <string name="level_advanced">Advanced</string>
-    <string name="minutes_total">%1$d min</string>
-    <string name="minutes_short">%1$d min</string>
-
-    <!-- Course detail -->
-    <string name="course_title">Course</string>
-    <string name="course_login_cta">Sign in to enroll in this course and track your progress.</string>
-    <string name="go_login">Sign in</string>
-    <string name="course_enroll">Enroll (free)</string>
-    <string name="course_progress">%1$s of %2$s lessons completed</string>
-    <string name="purchase_pending">Your purchase request is pending admin approval.</string>
-    <string name="course_purchase_request">Request purchase (admin approval)</string>
-    <string name="course_lessons">Lessons</string>
-
-    <!-- Lesson states -->
-    <string name="lesson_state_done">Completed</string>
-    <string name="lesson_state_open">Ready</string>
-    <string name="lesson_state_preview">Free preview</string>
-    <string name="lesson_state_enroll">Enroll needed</string>
-    <string name="lesson_state_locked">Locked</string>
-
-    <!-- Lesson -->
-    <string name="lesson_body">Lesson</string>
-    <string name="lesson_file">Lesson file</string>
-    <string name="lesson_file_download">Download</string>
-    <string name="lesson_complete_button">Mark complete &amp; earn points</string>
-    <string name="lesson_prev">Previous</string>
-    <string name="lesson_next">Next</string>
-    <string name="lesson_login_banner">Sign in to track your progress and earn points.</string>
+    <string name="google_needs_config">Google sign-in requires Firebase configuration (google-services.json and a server client id). Until then, please use phone sign-in.</string>
+    <string name="login_guest_note">You can browse courses and the league without signing in; an account is only needed to enroll and track progress.</string>
 
     <!-- League -->
-    <string name="league_scope_site">Whole site</string>
-    <string name="league_empty">No points recorded yet. Be the first!</string>
-    <string name="league_points">%1$d pts</string>
-    <string name="league_anonymous">Learner</string>
+    <string name="leaderboard_title">Pardava League</string>
+    <string name="league_all_courses">All courses</string>
+    <string name="league_empty_title">The league has not started yet</string>
+    <string name="league_empty_subtitle">Be the first: complete lessons, earn points and top the board.</string>
+    <string name="leaderboard_you">You</string>
 
     <!-- Profile -->
-    <string name="profile_title">My profile</string>
-    <string name="profile_not_signed_in">You are not signed in</string>
-    <string name="profile_sign_in_cta">Sign in to enroll in courses, download lesson files and earn league points.</string>
-    <string name="profile_points">Points</string>
-    <string name="profile_enrollments">Active courses</string>
+    <string name="guest_title">Welcome to Pardava</string>
+    <string name="sign_in_prompt">Sign in to enroll in courses, track progress, earn points and rank in the league.</string>
+    <string name="enrolled_courses">Active courses</string>
     <string name="logout">Sign out</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_language_hint">Persian is the default; switching recreates the screen.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_font">Font size</string>
+    <string name="font_small">Small</string>
+    <string name="font_normal">Normal</string>
+    <string name="font_large">Large</string>
+    <string name="font_xlarge">Extra large</string>
+    <string name="server_settings">Pardava site address</string>
+    <string name="server_url_label">Site URL (https://…)</string>
+    <string name="server_url_save">Save</string>
+    <string name="server_url_saved">Address saved; courses load from this domain.</string>
+    <string name="server_url_reset">Reset to default</string>
+    <string name="server_url_hint">Default: pardava.ir — change only for a self-hosted server.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_app">%1$s — bilingual programming &amp; AI platform.</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_about_site">pardava.ir</string>
 </resources>

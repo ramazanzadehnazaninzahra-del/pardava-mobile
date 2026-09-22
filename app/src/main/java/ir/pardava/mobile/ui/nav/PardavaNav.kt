@@ -21,10 +21,12 @@ import ir.pardava.mobile.ui.components.MainScaffold
 import ir.pardava.mobile.ui.screens.course.CourseScreen
 import ir.pardava.mobile.ui.screens.lesson.LessonScreen
 import ir.pardava.mobile.ui.screens.login.LoginScreen
+import ir.pardava.mobile.ui.screens.settings.SettingsScreen
 
 object Routes {
     const val MAIN = "main"
     const val LOGIN = "login"
+    const val SETTINGS = "settings"
     const val COURSE = "course/{slug}"
     const val LESSON = "lesson/{slug}/{lessonId}"
 
@@ -33,9 +35,10 @@ object Routes {
 }
 
 /**
- * Navigation for the public-first app: everyone lands on [Routes.MAIN] and can
- * browse courses / league without an account. [Routes.LOGIN] is pushed only
- * when an action needs an identity (enroll, purchase, track progress, token).
+ * Guest-first navigation: the app starts on MAIN whether or not the user is
+ * signed in — browsing courses, course pages and the league needs no account.
+ * The login screen is only pushed when an action requires a session
+ * (enrolling, opening locked lessons, completing lessons, the profile tab).
  */
 @Composable
 fun PardavaNav(app: PardavaApp) {
@@ -45,6 +48,10 @@ fun PardavaNav(app: PardavaApp) {
     LaunchedEffect(Unit) {
         app.session.awaitReady()
         startReady = true
+        // Dead session token discovered mid-app → drop the stale profile state.
+        app.api.onSessionExpired = {
+            // Session is already cleared; screens observe isSignedIn via refresh hooks.
+        }
     }
 
     if (!startReady) {
@@ -60,7 +67,8 @@ fun PardavaNav(app: PardavaApp) {
             MainScaffold(
                 app = app,
                 onOpenCourse = { slug -> nav.navigate(Routes.course(slug)) },
-                onGoLogin = { nav.navigate(Routes.LOGIN) },
+                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
             )
         }
 
@@ -68,7 +76,13 @@ fun PardavaNav(app: PardavaApp) {
             LoginScreen(
                 app = app,
                 onSignedIn = { nav.popBackStack() },
-                onDismiss = { nav.popBackStack() },
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                app = app,
+                onBack = { nav.popBackStack() },
             )
         }
 
@@ -81,7 +95,7 @@ fun PardavaNav(app: PardavaApp) {
                 slug = entry.arguments?.getString("slug") ?: "",
                 onBack = { nav.popBackStack() },
                 onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
-                onGoLogin = { nav.navigate(Routes.LOGIN) },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
             )
         }
 
@@ -97,8 +111,7 @@ fun PardavaNav(app: PardavaApp) {
                 slug = entry.arguments?.getString("slug") ?: "",
                 lessonId = entry.arguments?.getLong("lessonId") ?: 0L,
                 onBack = { nav.popBackStack() },
-                onGoLogin = { nav.navigate(Routes.LOGIN) },
-                onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
+                onOpenLogin = { nav.navigate(Routes.LOGIN) },
             )
         }
     }

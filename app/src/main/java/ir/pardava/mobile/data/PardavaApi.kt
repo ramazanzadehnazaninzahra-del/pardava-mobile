@@ -1,94 +1,82 @@
 package ir.pardava.mobile.data
 
-import ir.pardava.mobile.data.dto.CourseDetailOut
-import ir.pardava.mobile.data.dto.CoursesOut
-import ir.pardava.mobile.data.dto.GoogleIn
-import ir.pardava.mobile.data.dto.LeagueOut
-import ir.pardava.mobile.data.dto.LessonDetailOut
+import ir.pardava.mobile.data.dto.CompleteResponse
+import ir.pardava.mobile.data.dto.CourseDetailResponse
+import ir.pardava.mobile.data.dto.CoursesListResponse
+import ir.pardava.mobile.data.dto.GoogleLoginIn
+import ir.pardava.mobile.data.dto.LeagueResponse
+import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LoginIn
-import ir.pardava.mobile.data.dto.MeOut
-import ir.pardava.mobile.data.dto.MessageOut
+import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestIn
+import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.OtpVerifyIn
-import ir.pardava.mobile.data.dto.PurchaseIn
-import ir.pardava.mobile.data.dto.TokenOut
-import okhttp3.ResponseBody
+import ir.pardava.mobile.data.dto.SimpleOkResponse
+import ir.pardava.mobile.data.dto.TokenResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
-import retrofit2.http.Streaming
-import retrofit2.http.Url
 
 /**
- * Pardava Courses API (site backend, https://pardava.ir/api/courses).
+ * Pardava Courses API (v1.1.0) — base URL is the SITE ROOT (e.g. https://pardava.ir/)
+ * and every path below is prefixed with api/courses/…
  *
- * Retrofit base URL = "<server>/api/courses/" — every relative path below is
- * appended to it. The courses index lives at the prefix WITHOUT a trailing
- * slash (Flask route ""), so it is fetched via an absolute [Url] override.
+ * Transport quirk: the server always answers HTTP 200; business failures arrive
+ * inside the envelope (ok=false + code + error + action) and are converted to
+ * [ir.pardava.mobile.data.dto.ApiException] via requireOk().
  */
 interface PardavaApi {
 
-    // ---------------------------------------------------------------- auth
+    /* ---- auth (token = single session token `pdv_…`, no refresh) ---- */
 
-    @POST("auth/login")
-    suspend fun login(@Body body: LoginIn): TokenOut
+    @POST("api/courses/auth/login")
+    suspend fun login(@Body body: LoginIn): TokenResponse
 
-    @POST("auth/otp/request")
-    suspend fun otpRequest(@Body body: OtpRequestIn): MessageOut
+    @POST("api/courses/auth/otp/request")
+    suspend fun otpRequest(@Body body: OtpRequestIn): OtpRequestResponse
 
-    @POST("auth/otp/verify")
-    suspend fun otpVerify(@Body body: OtpVerifyIn): TokenOut
+    @POST("api/courses/auth/otp/verify")
+    suspend fun otpVerify(@Body body: OtpVerifyIn): TokenResponse
 
-    @POST("auth/google")
-    suspend fun googleLogin(@Body body: GoogleIn): TokenOut
+    @POST("api/courses/auth/google")
+    suspend fun googleLogin(@Body body: GoogleLoginIn): TokenResponse
 
-    @GET("auth/me")
-    suspend fun me(): MeOut
+    @GET("api/courses/auth/me")
+    suspend fun me(): MeResponse
 
-    @POST("auth/logout")
-    suspend fun logout(): MessageOut
+    @POST("api/courses/auth/logout")
+    suspend fun logout(): SimpleOkResponse
 
-    // ---------------------------------------------------------------- courses
+    /* ---- catalog (public browsing — no login required) ---- */
 
-    /** Absolute URL override — the index route must NOT end with a slash. */
-    @GET
-    suspend fun coursesIndex(@Url url: String): CoursesOut
+    @GET("api/courses")
+    suspend fun courses(): CoursesListResponse
 
-    @GET("league")
-    suspend fun league(@Query("course") course: String? = null): LeagueOut
+    @GET("api/courses/league")
+    suspend fun league(@Query("course") course: String? = null): LeagueResponse
 
-    @GET("{slug}")
-    suspend fun course(@Path("slug") slug: String): CourseDetailOut
+    @GET("api/courses/{slug}")
+    suspend fun course(@Path("slug") slug: String): CourseDetailResponse
 
-    // ---------------------------------------------------------------- learning
+    /* ---- learning (login required; lesson addressed by numeric id) ---- */
 
-    @POST("{slug}/enroll")
-    suspend fun enroll(@Path("slug") slug: String): MessageOut
+    @POST("api/courses/{slug}/enroll")
+    suspend fun enroll(@Path("slug") slug: String): SimpleOkResponse
 
-    @POST("{slug}/purchase")
-    suspend fun purchase(
-        @Path("slug") slug: String,
-        @Body body: PurchaseIn = PurchaseIn(),
-    ): MessageOut
+    @POST("api/courses/{slug}/purchase")
+    suspend fun purchase(@Path("slug") slug: String): SimpleOkResponse
 
-    @GET("{slug}/lessons/{lessonId}")
+    @GET("api/courses/{slug}/lessons/{lessonId}")
     suspend fun lesson(
         @Path("slug") slug: String,
         @Path("lessonId") lessonId: Long,
-    ): LessonDetailOut
+    ): LessonContentResponse
 
-    @POST("{slug}/lessons/{lessonId}/complete")
-    suspend fun completeLesson(
+    @POST("api/courses/{slug}/lessons/{lessonId}/complete")
+    suspend fun complete(
         @Path("slug") slug: String,
         @Path("lessonId") lessonId: Long,
-    ): MessageOut
-
-    @Streaming
-    @GET("{slug}/lessons/{lessonId}/file")
-    suspend fun lessonFile(
-        @Path("slug") slug: String,
-        @Path("lessonId") lessonId: Long,
-    ): ResponseBody
+    ): CompleteResponse
 }

@@ -1,35 +1,32 @@
 package ir.pardava.mobile.ui.screens.lesson
 
+import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
-import androidx.core.content.FileProvider
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ir.pardava.mobile.core.ApiClient
-import ir.pardava.mobile.core.apiCall
-import ir.pardava.mobile.data.dto.LessonDetailOut
-import ir.pardava.mobile.data.dto.MessageOut
-import java.io.File
+import ir.pardava.mobile.data.dto.ApiException
+import ir.pardava.mobile.data.dto.LessonContentResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Request
 
 sealed interface LessonUiState {
     data object Loading : LessonUiState
-    data class Ready(val detail: LessonDetailOut) : LessonUiState
+    data class Ready(val lesson: LessonContentResponse) : LessonUiState
     data class Failure(val message: String) : LessonUiState
 }
 
-sealed interface DownloadState {
-    data object Idle : DownloadState
-    data object Running : DownloadState
-    data class Done(val file: File, val mime: String) : DownloadState
-    data class Failed(val message: String) : DownloadState
-}
-
-class LessonViewModel(private val client: ApiClient) : ViewModel() {
+class LessonViewModel(
+    private val client: ApiClient,
+    private val slug: String,
+    private var lessonId: Long,
+) : ViewModel() {
 
     private val _state = MutableStateFlow<LessonUiState>(LessonUiState.Loading)
     val state: StateFlow<LessonUiState> = _state
@@ -37,48 +34,55 @@ class LessonViewModel(private val client: ApiClient) : ViewModel() {
     private val _busy = MutableStateFlow(false)
     val busy: StateFlow<Boolean> = _busy
 
-    private val _notice = MutableStateFlow<String?>(null)
-    val notice: StateFlow<String?> = _notice
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message
 
-    private val _download = MutableStateFlow<DownloadState>(DownloadState.Idle)
-    val download: StateFlow<DownloadState> = _download
+    /** One-shot event: completion succeeded → refresh the parent course. */
+    private val _completed = MutableStateFlow(false)
+    val completed: StateFlow<Boolean> = _completed
 
-    private var slug: String = ""
-    private var lessonId: Long = 0
+    fun consumeMessage() { _message.value = null }
 
-    fun bind(slug: String, lessonId: Long) {
-        if (this.slug != slug || this.lessonId != lessonId) {
-            this.slug = slug
-            this.lessonId = lessonId
-            _download.value = DownloadState.Idle
+    /** In-place prev/next navigation within the same screen. */
+    fun openLesson(newId: Long) {
+        if (newId != lessonId) {
+            lessonId = newId
             load()
         }
     }
 
     fun load() {
-        if (slug.isEmpty() || lessonId == 0L) return
         _state.value = LessonUiState.Loading
         viewModelScope.launch {
             try {
-                val detail = apiCall { client.api().lesson(slug, lessonId) }
-                _state.value = LessonUiState.Ready(detail)
+                _state.value = LessonUiState.Ready(client.call { client.api.lesson(slug, lessonId) })
             } catch (e: Exception) {
                 _state.value = LessonUiState.Failure(e.message ?: "error")
             }
         }
     }
 
-    /** Mark the lesson complete and earn points (server enforces access). */
-    fun complete() {
+    /** Marks the lesson complete and awards points. Guests are asked to log in first. */
+    fun complete(signedIn: Boolean, onNeedLogin: () -> Unit) {
+        if (!signedIn) {
+            _message.value = "برای ثبت پیشرفت و دریافت امتیاز ابتدا وارد حساب شوید."
+            onNeedLogin()
+            return
+        }
+        if (_busy.value) return
+        _busy.value = true
         viewModelScope.launch {
-            _busy.value = true
             try {
-                val out: MessageOut = apiCall { client.api().completeLesson(slug, lessonId) }
-                _notice.value = out.message
-                    ?: (out.points_awarded?.takeIf { it > 0 }?.let { "+$it" })
+                val res = client.call { client.api.complete(slug, lessonId) }
+                _message.value = res.message
+                    ?: (res.pointsAwarded?.let { "$it امتیاز گرفتید!" }
+                        ?: "جلسه تکمیل شد. آفرین!")
+                _completed.value = true
                 load()
+            } catch (e: ApiException) {
+                _message.value = e.message
             } catch (e: Exception) {
-                _notice.value = e.message
+                _message.value = e.message ?: "خطا"
             } finally {
                 _busy.value = false
             }
@@ -86,56 +90,75 @@ class LessonViewModel(private val client: ApiClient) : ViewModel() {
     }
 
     /**
-     * Download the lesson file with the session token (the endpoint requires
-     * Bearer auth) into cacheDir/downloads, ready to be opened via FileProvider.
+     * Streams the lesson attachment to the public Downloads folder via
+     * MediaStore (no storage permission needed on API 29+; direct file on older).
      */
     fun downloadFile(context: Context) {
-        if (_download.value == DownloadState.Running) return
-        _download.value = DownloadState.Running
+        if (_busy.value) return
+        _busy.value = true
         viewModelScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) {
-                    val body = client.api().lessonFile(slug, lessonId)
-                    val dir = File(context.cacheDir, "downloads").apply { mkdirs() }
-                    val lesson = (_state.value as? LessonUiState.Ready)?.detail?.lesson
-                    val rawName = lesson?.file?.name?.takeIf { it.isNotBlank() }
-                        ?: "lesson-$lessonId"
-                    val safeName = rawName.replace(Regex("[/\\\\]"), "_")
-                    val mime = body.contentType()?.toString()
-                        ?.substringBefore(';')?.trim().orEmpty()
-                    val file = File(dir, safeName)
-                    body.byteStream().use { input ->
-                        file.outputStream().use { output -> input.copyTo(output) }
-                    }
-                    DownloadState.Done(file, mime)
-                }
-                _download.value = result
-                (result as? DownloadState.Done)?.let { openFile(context, it) }
+                val url = client.absoluteUrl("api/courses/$slug/lessons/$lessonId/file")!!
+                val saved = withContext(Dispatchers.IO) { saveToDownloads(context, url) }
+                _message.value = if (saved) "فایل در پوشهٔ Downloads ذخیره شد." else "فایلی برای این جلسه موجود نیست."
+            } catch (e: ApiException) {
+                _message.value = e.message
             } catch (e: Exception) {
-                _download.value = DownloadState.Failed(e.message ?: "error")
+                _message.value = "دانلود ناموفق بود: ${e.message ?: "خطای نامشخص"}"
+            } finally {
+                _busy.value = false
             }
         }
     }
 
-    private fun openFile(context: Context, done: DownloadState.Done) {
-        runCatching {
-            val uri = FileProvider.getUriForFile(context, context.packageName + ".files", done.file)
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, done.mime.ifBlank { "*/*" })
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+    private fun saveToDownloads(context: Context, url: String): Boolean {
+        val http = okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", client.session.token?.let { "Bearer $it" } ?: "")
+            .build()
+        http.newCall(request).execute().use { resp ->
+            if (!resp.isSuccessful) return false
+            val contentType = resp.header("Content-Type") ?: ""
+            if (contentType.contains("text/html") || contentType.contains("application/json")) return false
+            val fileName = fileNameFrom(url, contentType)
+            val body = resp.body ?: return false
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.MIME_TYPE, contentType.ifBlank { "application/octet-stream" })
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val resolver = context.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return false
+                resolver.openOutputStream(uri)?.use { out -> body.byteStream().copyTo(out) } ?: return false
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+                return true
             }
-            context.startActivity(intent)
-        }.onFailure {
-            _notice.value = it.message
+            @Suppress("DEPRECATION")
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            dir.mkdirs()
+            val file = java.io.File(dir, fileName)
+            file.outputStream().use { out -> body.byteStream().copyTo(out) }
+            android.media.MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
+            return true
         }
     }
 
-    fun consumeNotice() {
-        _notice.value = null
-    }
-
-    fun consumeDownloadResult() {
-        val d = _download.value
-        if (d is DownloadState.Failed) _download.value = DownloadState.Idle
+    private fun fileNameFrom(url: String, contentType: String): String {
+        val fromUrl = url.substringAfterLast('/').substringBefore('?')
+        if (fromUrl.isNotBlank() && fromUrl.contains('.')) return "pardava-$fromUrl"
+        val ext = when {
+            contentType.contains("pdf") -> "pdf"
+            contentType.contains("zip") -> "zip"
+            contentType.contains("text") -> "txt"
+            else -> "bin"
+        }
+        return "pardava-lesson-$lessonId.$ext"
     }
 }
