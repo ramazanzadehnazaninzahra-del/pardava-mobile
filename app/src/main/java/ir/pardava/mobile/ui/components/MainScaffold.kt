@@ -27,7 +27,7 @@ import androidx.compose.ui.res.stringResource
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
 import ir.pardava.mobile.ui.screens.courses.CoursesScreen
-import ir.pardava.mobile.ui.screens.leaderboard.LeaderboardScreen
+import ir.pardava.mobile.ui.screens.league.LeagueScreen
 import ir.pardava.mobile.ui.screens.profile.ProfileScreen
 
 private data class TabSpec(
@@ -55,8 +55,8 @@ fun MainScaffold(
         TabSpec(stringResource(R.string.nav_courses), Icons.Filled.School) {
             CoursesScreen(app = app, onOpenCourse = onOpenCourse)
         },
-        TabSpec(stringResource(R.string.nav_leaderboard), Icons.Filled.Leaderboard) {
-            LeaderboardScreen(app = app)
+        TabSpec(stringResource(R.string.nav_league), Icons.Filled.EmojiEvents) {
+            LeagueScreen(app = app)
         },
         TabSpec(stringResource(R.string.nav_profile), Icons.Filled.Person) {
             ProfileScreen(app = app, onOpenLogin = onOpenLogin, onOpenSettings = onOpenSettings)

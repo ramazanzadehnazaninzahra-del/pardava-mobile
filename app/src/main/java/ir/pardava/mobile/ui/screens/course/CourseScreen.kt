@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayCircleOutline
@@ -28,7 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -90,7 +88,15 @@ fun CourseScreen(
     val signedIn = app.session.isSignedIn
     val snackbar = remember { SnackbarHostState() }
 
-    LaunchedEffect(slug) { vm.load() }
+    LaunchedEffect(slug) { vm.bind(slug) }
+    // Refresh when the user comes back from the login screen.
+    LaunchedEffect(signedIn) { if (slug.isNotEmpty()) vm.load() }
+    LaunchedEffect(notice) {
+        notice?.let {
+            snackbar.showSnackbar(it)
+            vm.consumeNotice()
+        }
+    }
 
     LaunchedEffect(action) {
         when (val a = action) {
@@ -343,6 +349,17 @@ fun CourseScreen(
                         Spacer(Modifier.height(24.dp))
                     }
                 }
+
+                is CourseUiState.Ready -> CourseContent(
+                    app = app,
+                    detail = s.detail,
+                    signedIn = signedIn,
+                    busy = busy,
+                    onEnroll = { vm.enroll() },
+                    onPurchase = { vm.requestPurchase() },
+                    onGoLogin = onGoLogin,
+                    onOpenLesson = onOpenLesson,
+                )
             }
         }
     }
@@ -409,7 +426,41 @@ private fun LessonRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                course.is_free || course.price == 0L -> Button(
+                    onClick = onEnroll,
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (busy) {
+                        CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(stringResource(R.string.course_enroll))
+                    }
+                }
+                detail.pending_purchase != null -> Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(stringResource(R.string.purchase_pending), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                else -> OutlinedButton(
+                    onClick = onPurchase,
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.course_purchase_request))
+                }
             }
+        }
+
+        items(detail.lessons, key = { it.id }) { lesson ->
+            LessonRow(lesson, lang, onClick = {
+                when {
+                    lesson.isAccessible -> onOpenLesson(course.slug, lesson.id)
+                    !signedIn -> onGoLogin()
+                    // state == "enroll" while signed in → surface the CTA again
+                    else -> if (course.is_free || course.price == 0L) onEnroll() else onPurchase()
+                }
+            })
         }
     }
 }

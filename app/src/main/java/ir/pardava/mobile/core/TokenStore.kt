@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
-private val Context.dataStore by preferencesDataStore(name = "pardava_session")
+private val Context.sessionStore by preferencesDataStore(name = "pardava_session_v2")
 
 /** Persisted session: single API token, cached user, site-root URL, appearance prefs. */
 class TokenStore(private val context: Context) {
@@ -71,7 +71,7 @@ class TokenStore(private val context: Context) {
     }
 
     suspend fun setBaseUrl(url: String) {
-        context.dataStore.edit { it[Keys.BASE_URL] = url.trimEnd('/') }
+        context.sessionStore.edit { it[Keys.BASE_URL] = url.trimEnd('/') }
     }
 
     suspend fun setThemeMode(mode: String) {

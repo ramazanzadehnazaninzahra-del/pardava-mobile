@@ -157,6 +157,30 @@ fun ProfileScreen(
                     Text(stringResource(R.string.logout), color = MaterialTheme.colorScheme.error)
                 }
             }
+
+            OutlinedButton(
+                onClick = {
+                    loggingOut = true
+                    scope.launch {
+                        app.api.logout()
+                        loggingOut = false
+                    }
+                },
+                enabled = !loggingOut,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(stringResource(R.string.logout)) }
+        }
+
+        HorizontalDivider()
+
+        Column(Modifier.fillMaxWidth()) {
+            Text(
+                stringResource(R.string.server_settings),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            ServerSettingsSection(app = app)
         }
     }
 }

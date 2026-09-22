@@ -30,6 +30,8 @@ class ProfileViewModel(private val client: ApiClient) : ViewModel() {
             try {
                 _state.value = ProfileUiState.Ready(client.call { client.api.me() })
             } catch (e: Exception) {
+                // Revoked/expired token → drop the local session; Profile shows the signed-out card.
+                if (e is ApiException && e.error.status == 401) client.session.clear()
                 _state.value = ProfileUiState.Failure(e.message ?: "error")
             }
         }
