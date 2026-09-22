@@ -10,6 +10,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,11 +50,15 @@ object Routes {
     const val LESSON = "lesson/{slug}/{lessonId}"
     const val WEB = "web/{title}/{url}"
     const val ARTICLE = "article/{key}"
+    const val QUIZ = "quiz/{slug}"
+    const val CERT = "cert/{slug}"
 
     fun course(slug: String) = "course/$slug"
     fun lesson(slug: String, lessonId: Long) = "lesson/$slug/$lessonId"
     fun web(title: String, url: String) = "web/$title/${android.net.Uri.encode(url)}"
     fun article(key: String) = "article/${android.net.Uri.encode(key)}"
+    fun quiz(slug: String) = "quiz/$slug"
+    fun cert(slug: String) = "cert/$slug"
 }
 
 /**
@@ -191,12 +196,15 @@ fun PardavaNav(app: PardavaApp) {
             Routes.COURSE,
             arguments = listOf(navArgument("slug") { type = NavType.StringType }),
         ) { entry ->
+            val courseSlug = entry.arguments?.getString("slug") ?: ""
             CourseScreen(
                 app = app,
-                slug = entry.arguments?.getString("slug") ?: "",
+                slug = courseSlug,
                 onBack = { nav.popBackStack() },
                 onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
                 onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                onOpenQuiz = { nav.navigate(Routes.quiz(it)) },
+                onOpenCertificate = { nav.navigate(Routes.cert(it)) },
             )
         }
 
@@ -242,5 +250,36 @@ fun PardavaNav(app: PardavaApp) {
                 onBack = { nav.popBackStack() },
             )
         }
+
+        composable(
+            Routes.QUIZ,
+            arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+        ) { entry ->
+            ir.pardava.mobile.ui.screens.quiz.QuizScreen(
+                app = app,
+                slug = entry.arguments?.getString("slug") ?: "",
+                onBack = { nav.popBackStack() },
+            )
+        }
+
+        composable(
+            Routes.CERT,
+            arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+        ) { entry ->
+            ir.pardava.mobile.ui.screens.certificate.CertificateScreen(
+                app = app,
+                slug = entry.arguments?.getString("slug") ?: "",
+                onBack = { nav.popBackStack() },
+            )
+        }
+    }
+
+    // ---- screen-view usage logging (android install/usage telemetry) ----
+    DisposableEffect(nav) {
+        val listener = androidx.navigation.NavController.OnDestinationChangedListener { _, dest, _ ->
+            app.logger.log("app_screen", path = dest.route ?: "unknown")
+        }
+        nav.addOnDestinationChangedListener(listener)
+        onDispose { nav.removeOnDestinationChangedListener(listener) }
     }
 }

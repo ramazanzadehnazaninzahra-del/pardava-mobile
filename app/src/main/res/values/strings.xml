@@ -135,4 +135,37 @@
     <string name="update_uptodate_body">You already have the latest version of the Pardava app.</string>
     <string name="google_no_browser">No browser found for Google sign-in.</string>
     <string name="google_sign_in_hint">Sign in on the web page; you will return to the app automatically.</string>
+
+    <!-- video player -->
+    <string name="player_play_pause">Play / pause</string>
+    <string name="player_back_10">Back 10 seconds</string>
+    <string name="player_forward_10">Forward 10 seconds</string>
+    <string name="player_fullscreen">Fullscreen</string>
+
+    <!-- quiz -->
+    <string name="quiz_title">Course quiz</string>
+    <string name="quiz_start">Start quiz</string>
+    <string name="quiz_retake">Retake</string>
+    <string name="quiz_meta_line">%1$d questions · pass %2$d%%</string>
+    <string name="quiz_questions_count">%1$d questions</string>
+    <string name="quiz_pass_line">Pass mark %1$d%%</string>
+    <string name="quiz_best">Your best: %1$d%%</string>
+    <string name="quiz_score">Your score: %1$d%%</string>
+    <string name="quiz_passed">Well done — you passed!</string>
+    <string name="quiz_failed">Not quite — pass mark is %1$d%%.</string>
+    <string name="quiz_correct_count">%1$d of %2$d correct</string>
+    <string name="quiz_submit">Submit answers</string>
+
+    <!-- certificate -->
+    <string name="cert_title">Course certificate</string>
+    <string name="cert_print">Print / save PDF</string>
+    <string name="cert_card_title">Course certificate</string>
+    <string name="cert_issued_hint">Your certificate is ready.</string>
+    <string name="cert_progress_hint">Progress: %1$d of %2$d lessons</string>
+    <string name="cert_view">View</string>
+
+    <!-- rating -->
+    <string name="rating_summary">Average %1$s of 5 · %2$s raters</string>
+    <string name="rating_none">No ratings yet</string>
+    <string name="rating_yours">Your rating:</string>
 </resources>

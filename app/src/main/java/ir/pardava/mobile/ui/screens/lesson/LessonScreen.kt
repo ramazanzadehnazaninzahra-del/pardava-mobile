@@ -57,6 +57,7 @@ import ir.pardava.mobile.data.dto.LessonContentDto
 import ir.pardava.mobile.data.dto.LessonItemDto
 import ir.pardava.mobile.ui.components.ErrorState
 import ir.pardava.mobile.ui.components.LoadingBox
+import ir.pardava.mobile.ui.player.LessonVideoPlayer
 
 /**
  * Lesson reader: rich text content, completion with point award, prev/next
@@ -126,6 +127,10 @@ fun LessonScreen(
                     lesson = lesson,
                     lang = lang,
                     busy = busy,
+                    resumeSec = vm.resumeSec.collectAsStateWithLifecycle().value,
+                    videoUrl = vm.videoUrl(),
+                    onProgressTick = { pos, dur -> vm.saveProgress(pos, dur) },
+                    onVideoEvent = { name, detail -> app.logger.log(name, label = lesson.title, detail = detail) },
                     onReload = { vm.load() },
                     onComplete = { vm.complete(signedIn, onNeedLogin = onOpenLogin) },
                     onDownload = { vm.downloadFile(app) },
@@ -145,6 +150,10 @@ private fun LessonContent(
     lesson: LessonContentDto,
     lang: String,
     busy: Boolean,
+    resumeSec: Double?,
+    videoUrl: String?,
+    onProgressTick: (Double, Double) -> Unit,
+    onVideoEvent: (String, Map<String, String>) -> Unit,
     onReload: () -> Unit,
     onComplete: () -> Unit,
     onDownload: () -> Unit,
@@ -156,9 +165,25 @@ private fun LessonContent(
     Column(
         modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .verticalScroll(rememberScrollState()),
     ) {
+        // ---- video player (top, full-bleed) ----
+        val showVideo = lesson.hasVideo == true && videoUrl != null &&
+            lesson.state != LessonItemDto.STATE_LOCKED
+        if (showVideo) {
+            androidx.compose.runtime.key(videoUrl) {
+                LessonVideoPlayer(
+                    url = videoUrl!!,
+                    bearerToken = app.session.token,
+                    resumePositionSec = resumeSec ?: 0.0,
+                    lang = lang,
+                    onProgressTick = onProgressTick,
+                    onEvent = onVideoEvent,
+                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                )
+            }
+        }
+        Column(Modifier.padding(16.dp)) {
         Text(
             lesson.title ?: "",
             style = MaterialTheme.typography.headlineSmall,
@@ -333,6 +358,7 @@ private fun LessonContent(
             }
         }
         Spacer(Modifier.height(24.dp))
+        }
     }
 }
 

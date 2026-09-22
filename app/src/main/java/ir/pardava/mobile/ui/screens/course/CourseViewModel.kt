@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import ir.pardava.mobile.core.ApiClient
 import ir.pardava.mobile.data.dto.ApiException
 import ir.pardava.mobile.data.dto.CourseDetailResponse
+import ir.pardava.mobile.data.dto.RateIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,6 +15,11 @@ sealed interface CourseUiState {
     data class Ready(val detail: CourseDetailResponse) : CourseUiState
     data class Failure(val message: String) : CourseUiState
 }
+
+/** Learning extras loaded from /api/courses/<slug>/learning (rating, quiz, certificate). */
+data class LearningExtras(
+    val learning: ir.pardava.mobile.data.dto.LearningResponse? = null,
+)
 
 sealed interface CourseAction {
     data class Message(val text: String, val isError: Boolean = false) : CourseAction
@@ -34,6 +40,9 @@ class CourseViewModel(
     private val _action = MutableStateFlow<CourseAction?>(null)
     val action: StateFlow<CourseAction?> = _action
 
+    private val _extras = MutableStateFlow(LearningExtras())
+    val extras: StateFlow<LearningExtras> = _extras
+
     fun consumeAction() { _action.value = null }
 
     fun load() {
@@ -41,8 +50,43 @@ class CourseViewModel(
         viewModelScope.launch {
             try {
                 _state.value = CourseUiState.Ready(client.call { client.api.course(slug) })
+                loadExtras()
             } catch (e: Exception) {
                 _state.value = CourseUiState.Failure(e.message ?: "error")
+            }
+        }
+    }
+
+    /** Fire-and-forget bundle: rating/quiz/certificate (never blocks the page). */
+    fun loadExtras() {
+        viewModelScope.launch {
+            runCatching {
+                val res = client.call { client.api.learning(slug) }
+                _extras.value = LearningExtras(res)
+            }
+        }
+    }
+
+    /** Submit a star rating (logged-in only). */
+    fun rate(signedIn: Boolean, stars: Int) {
+        if (!signedIn) {
+            _action.value = CourseAction.NeedLogin("برای امتیاز دادن به دوره ابتدا وارد حساب شوید.")
+            return
+        }
+        if (stars !in 1..5) return
+        viewModelScope.launch {
+            try {
+                val res = client.call { client.api.rate(slug, RateIn(stars)) }
+                _action.value = CourseAction.Message("امتیاز شما ثبت شد؛ سپاس!")
+                loadExtras()
+            } catch (e: ApiException) {
+                if (e.isAuthError) {
+                    _action.value = CourseAction.NeedLogin("نشست شما منقضی شده است؛ دوباره وارد شوید.")
+                } else {
+                    _action.value = CourseAction.Message(e.message, isError = true)
+                }
+            } catch (e: Exception) {
+                _action.value = CourseAction.Message(e.message ?: "خطا", isError = true)
             }
         }
     }
