@@ -3,13 +3,15 @@ package ir.pardava.mobile.core
 import android.os.Handler
 import android.os.Looper
 import ir.pardava.mobile.data.PardavaApi
-import ir.pardava.mobile.data.UpdateProfileIn
-import ir.pardava.mobile.data.dto.RefreshIn
-import ir.pardava.mobile.data.dto.TokenOut
+import ir.pardava.mobile.data.dto.ApiException
+import ir.pardava.mobile.data.dto.Envelope
+import ir.pardava.mobile.data.dto.UserDto
+import ir.pardava.mobile.data.dto.requireOk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -23,10 +25,11 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * Owns the OkHttp/Retrofit stack:
- * - Authorization + Accept-Language headers
- * - 401 → single-flight refresh → retry (rotated refresh token persisted)
- * - refresh failure → session cleared + [onSessionExpired] (login screen)
+ * Owns the OkHttp/Retrofit stack for the Pardava Courses API:
+ * - Base URL is the SITE ROOT (https://pardava.ir/); paths carry api/courses/…
+ * - Single session token (pdv_…) sent as Authorization: Bearer — no refresh flow.
+ * - Every HTTP answer is 200; envelope ok=false is translated into [ApiException].
+ * - HTML proxy/error pages (e.g. wrong URL) surface as friendly network errors.
  */
 class ApiClient(
     val session: SessionManager,
@@ -34,128 +37,132 @@ class ApiClient(
     private val debugLogging: Boolean = false,
 ) {
 
-    /** Invoked (main thread) when the refresh chain fails — UI navigates to login. */
+    /** Invoked (main thread) when a call proves the session token is dead — UI offers re-login. */
     var onSessionExpired: (() -> Unit)? = null
 
     /** Current UI language for Accept-Language; updated by the language switcher. */
     @Volatile
     var acceptLanguage: String = "fa"
 
-    private val json = Json {
+    val json: Json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
         coerceInputValues = true
+        isLenient = true
     }
 
-    /** Bare client for the refresh call — must NOT recurse through the authenticator. */
-    private val refreshClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .build()
+    private val apiLock = Any()
 
-    private val authenticator = okhttp3.Authenticator { _, response ->
-        val refreshed = synchronized(this) {
-            val currentAccess = session.access
-            val requestAuth = response.request.header("Authorization")
-            // Another thread already rotated the token while we waited: just retry.
-            if (currentAccess != null && requestAuth != null && requestAuth != "Bearer $currentAccess") {
-                return@synchronized response.request.newBuilder()
-                    .header("Authorization", "Bearer $currentAccess")
-                    .build()
+    @Volatile
+    private var apiInstance: PardavaApi? = null
+
+    @Volatile
+    private var apiBaseUrl: String? = null
+
+    /** Retrofit instance, rebuilt whenever [SessionManager.baseUrl] changes. */
+    val api: PardavaApi
+        get() {
+            val url = session.baseUrl
+            var inst = apiInstance
+            if (inst == null || apiBaseUrl != url) {
+                synchronized(apiLock) {
+                    inst = apiInstance
+                    if (inst == null || apiBaseUrl != url) {
+                        val logging = HttpLoggingInterceptor().apply {
+                            level = if (debugLogging) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+                        }
+                        val ok = OkHttpClient.Builder()
+                            .connectTimeout(15, TimeUnit.SECONDS)
+                            .readTimeout(30, TimeUnit.SECONDS)
+                            .addInterceptor(headerInterceptor())
+                            .addInterceptor(logging)
+                            .build()
+                        inst = Retrofit.Builder()
+                            .baseUrl(url)
+                            .client(ok)
+                            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+                            .build()
+                            .create(PardavaApi::class.java)
+                        apiBaseUrl = url
+                        apiInstance = inst
+                    }
+                }
             }
-            val refreshTok = session.refresh ?: return@synchronized null
-            val newTokens = refreshBlocking(refreshTok) ?: run {
-                runBlocking { session.clear() }
-                Handler(Looper.getMainLooper()).post { onSessionExpired?.invoke() }
-                return@synchronized null
-            }
-            runBlocking { session.save(newTokens.access_token, newTokens.refresh_token, newTokens.user.id) }
-            response.request.newBuilder()
-                .header("Authorization", "Bearer ${newTokens.access_token}")
-                .build()
+            return inst!!
         }
-        refreshed
-    }
-
-    private fun refreshBlocking(refreshToken: String): TokenOut? = runCatching {
-        val payload = json.encodeToString(RefreshIn.serializer(), RefreshIn(refreshToken))
-        val request = Request.Builder()
-            .url("${session.baseUrl}api/v1/auth/refresh")
-            .post(payload.toRequestBody())
-            .build()
-        refreshClient.newCall(request).execute().use { resp ->
-            val body = resp.body?.string()
-            if (!resp.isSuccessful) return@use null
-            json.decodeFromString(TokenOut.serializer(), body ?: return@use null)
-        }
-    }.getOrNull()
-
-    private val api: PardavaApi by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = if (debugLogging) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
-        }
-        val ok = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .addInterceptor(headerInterceptor())
-            .addInterceptor(logging)
-            .authenticator(authenticator)
-            .build()
-        Retrofit.Builder()
-            .baseUrl(session.baseUrl)
-            .client(ok)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(PardavaApi::class.java)
-    }
 
     private fun headerInterceptor() = Interceptor { chain ->
         val builder = chain.request().newBuilder()
-        session.access?.let { builder.header("Authorization", "Bearer $it") }
+        session.token?.let { builder.header("Authorization", "Bearer $it") }
         builder.header("Accept-Language", acceptLanguage)
         builder.header("X-Client", "pardava-android")
         chain.proceed(builder.build())
     }
 
-    /** Relative signed-media URLs (e.g. `/api/v1/media/...`) → absolute. */
-    fun absoluteUrl(url: String): String =
-        if (url.startsWith("http")) url else session.baseUrl.trimEnd('/') + url
+    /** Relative URLs from the server (covers, avatars, …) → absolute against the site root. */
+    fun absoluteUrl(url: String?): String? =
+        url?.takeIf { it.isNotBlank() }?.let {
+            if (it.startsWith("http")) it else session.baseUrl.trimEnd('/') + it
+        }
 
-    fun api(): PardavaApi = api
+    /**
+     * Run a suspended API call and normalize every failure mode into [ApiException]:
+     * - envelope ok=false → its own code/message
+     * - HTTP errors (rare, e.g. CDN hiccups) → status code
+     * - HTML instead of JSON (proxy error pages) → friendly message
+     * - auth failures clear the local session and notify the UI once.
+     */
+    suspend fun <T : Envelope> call(block: suspend () -> T): T = try {
+        block().requireOk()
+    } catch (e: ApiException) {
+        if (e.isAuthError && session.isSignedIn) {
+            session.clear()
+            Handler(Looper.getMainLooper()).post { onSessionExpired?.invoke() }
+        }
+        throw e
+    } catch (e: HttpException) {
+        throw ApiException(e.code(), friendlyHttpMessage(e.code()))
+    } catch (e: SerializationException) {
+        throw ApiException(0, "پاسخ سرور معتبر نبود. آدرس سرور را در تنظیمات بررسی کنید.")
+    } catch (e: java.io.IOException) {
+        throw ApiException(0, "به سرور دسترسی نیست. اتصال اینترنت را بررسی کنید.")
+    }
+
+    private fun friendlyHttpMessage(status: Int): String = when (status) {
+        404 -> "این بخش روی سرور پیدا نشد. آدرس سرور را در تنظیمات بررسی کنید."
+        in 500..599 -> "سرور موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید."
+        else -> "مشکلی پیش آمد (کد $status). دوباره تلاش کنید."
+    }
 
     suspend fun logout() {
-        runCatching { api().logout(ir.pardava.mobile.data.dto.LogoutIn(session.refresh ?: "")) }
+        val token = session.token
+        runCatching {
+            if (token != null) api.logout()
+        }
         session.clear()
     }
 
     suspend fun setLanguage(lang: String) {
         acceptLanguage = lang
-        runCatching { api().updateMe(body = UpdateProfileIn(preferred_language = lang)) }
     }
 }
 
-private fun String.toRequestBody(): okhttp3.RequestBody =
-    okhttp3.RequestBody.create("application/json".toMediaType(), this)
-
 /**
- * In-memory mirror of the persisted tokens so interceptors never block on DataStore.
+ * In-memory mirror of the persisted session so interceptors never block on DataStore.
+ * Holds the single session token, the cached user profile and the site root URL.
  */
 class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
     @Volatile
-    var access: String? = null
+    var token: String? = null
         private set
 
     @Volatile
-    var refresh: String? = null
+    var user: UserDto? = null
         private set
 
     @Volatile
-    var baseUrl: String = BuildConfigDefault.url
-        private set
-
-    @Volatile
-    var userId: Long? = null
+    var baseUrl: String = normalizeBaseUrl(BuildConfigDefault.url)
         private set
 
     private val readySignal = kotlinx.coroutines.CompletableDeferred<Unit>()
@@ -165,15 +172,12 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
     init {
         scope.launch {
-            store.baseUrl.collect { url ->
-                baseUrl = url.trimEnd('/') + "/"
-            }
+            store.baseUrl.collect { url -> baseUrl = normalizeBaseUrl(url) }
         }
         scope.launch {
             var first = true
-            store.tokens.collect { t ->
-                access = t.access
-                refresh = t.refresh
+            store.session.collect { s ->
+                token = s.token
                 if (first) {
                     first = false
                     readySignal.complete(Unit)
@@ -184,30 +188,69 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
     suspend fun restore() {
         val snap = store.snapshot()
-        access = snap.access
-        refresh = snap.refresh
-        baseUrl = snap.baseUrl.trimEnd('/') + "/"
+        token = snap.token
+        user = snap.user
+        baseUrl = normalizeBaseUrl(snap.baseUrl)
     }
 
-    suspend fun save(accessToken: String, refreshToken: String, userId: Long? = null) {
-        store.save(accessToken, refreshToken, userId)
-        access = accessToken
-        refresh = refreshToken
-        userId?.let { this.userId = it }
+    suspend fun saveSession(newToken: String, newUser: UserDto?) {
+        store.save(newToken, newUser)
+        token = newToken
+        user = newUser
     }
 
     suspend fun clear() {
         store.clear()
-        access = null
-        refresh = null
+        token = null
+        user = null
     }
 
-    val isSignedIn: Boolean get() = refresh != null
+    /** Runtime site-root switching (settings screen) — memory + DataStore, instant. */
+    suspend fun setBaseUrl(url: String) {
+        val normalized = normalizeBaseUrl(url)
+        store.setBaseUrl(normalized)
+        baseUrl = normalized
+    }
+
+    val isSignedIn: Boolean get() = token != null
+
+    companion object {
+        /**
+         * Accepts "pardava.ir", "pardava.ir/", "https://pardava.ir" … and always
+         * returns a Retrofit-ready absolute URL ending in exactly one '/'.
+         * Bare hosts get https:// — plain http stays for LAN debugging servers.
+         */
+        fun normalizeBaseUrl(raw: String): String {
+            var url = raw.trim()
+            if (url.isEmpty()) url = BuildConfigDefault.url.trim()
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "https://$url"
+            }
+            url = url.trimEnd('/')
+            return "$url/"
+        }
+
+        /**
+         * v0.5.0 migration: sessions configured against the retired local
+         * FastAPI (10.0.2.2 / localhost / :8100) are moved to the production site.
+         */
+        fun migrateLegacyUrl(stored: String, default: String): String {
+            val host = runCatching { java.net.URI(stored).host }.getOrNull()
+            return if (host in LEGACY_HOSTS || stored.contains(":8100")) default else stored
+        }
+
+        private val LEGACY_HOSTS = setOf("10.0.2.2", "localhost", "127.0.0.1")
+    }
 }
 
-/** Helper: run a suspended API call and translate [HttpException] into [ApiException]. */
-suspend fun <T> apiCall(block: suspend () -> T): T = try {
-    block()
-} catch (e: HttpException) {
-    throw ApiException(ApiError.from(e))
+/**
+ * Unit-test indirection so the default URL can be read without BuildConfig
+ * (mirrors the value configured in app/build.gradle.kts).
+ */
+object BuildConfigDefault {
+    @Volatile
+    var url: String = "https://pardava.ir/"
+
+    @Volatile
+    var googleClientId: String = ""
 }
