@@ -22,8 +22,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayCircleOutline
+import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -78,6 +81,8 @@ fun CourseScreen(
     onBack: () -> Unit,
     onOpenLesson: (String, Long) -> Unit,
     onOpenLogin: () -> Unit,
+    onOpenQuiz: (String) -> Unit = {},
+    onOpenCertificate: (String) -> Unit = {},
 ) {
     val vm: CourseViewModel = viewModel(
         key = slug,
@@ -283,6 +288,111 @@ fun CourseScreen(
                             }
                         }
                         if (!enrolled) Spacer(Modifier.height(14.dp))
+
+                        // ---- learning extras: quiz, certificate, rating ----
+                        val extras by vm.extras.collectAsStateWithLifecycle()
+                        extras.learning?.quiz?.takeIf { it.questions != null && it.questions > 0 }?.let { quiz ->
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.Quiz, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(quiz.title ?: stringResource(R.string.quiz_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            Fmt.digits(stringResource(R.string.quiz_meta_line, quiz.questions ?: 0, quiz.passPercent ?: 60), lang) +
+                                                (quiz.best?.let { " · " + Fmt.digits(stringResource(R.string.quiz_best, it), lang) } ?: ""),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    OutlinedButton(onClick = { onOpenQuiz(slug) }, shape = RoundedCornerShape(10.dp)) {
+                                        Text(stringResource(if (quiz.best != null) R.string.quiz_retake else R.string.quiz_start))
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+
+                        extras.learning?.certificate?.takeIf { it.available == true }?.let { cert ->
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (cert.issued == true)
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.WorkspacePremium, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(stringResource(R.string.cert_card_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        val req = cert.requirements
+                                        Text(
+                                            if (cert.issued == true)
+                                                stringResource(R.string.cert_issued_hint)
+                                            else if (req != null)
+                                                Fmt.digits(stringResource(R.string.cert_progress_hint, req.completed ?: 0, req.total ?: 0), lang)
+                                            else "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    if (cert.issued == true) {
+                                        OutlinedButton(onClick = { onOpenCertificate(slug) }, shape = RoundedCornerShape(10.dp)) {
+                                            Text(stringResource(R.string.cert_view))
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+
+                        extras.learning?.rating?.let { rating ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    if (rating.count ?: 0 > 0)
+                                        Fmt.digits(stringResource(R.string.rating_summary, rating.avg ?: 0.0, rating.count ?: 0), lang)
+                                    else
+                                        stringResource(R.string.rating_none),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    stringResource(R.string.rating_yours),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                val myStars = extras.learning?.myRating?.stars ?: 0
+                                (1..5).forEach { star ->
+                                    IconButton(onClick = {
+                                        app.logger.log("app_rate", label = slug, detail = mapOf("stars" to "$star"))
+                                        vm.rate(signedIn, star)
+                                    }) {
+                                        Icon(
+                                            Icons.Filled.Star,
+                                            contentDescription = Fmt.digits("$star", lang),
+                                            tint = if (star <= myStars) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
+                                            modifier = Modifier.size(26.dp),
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
 
                         // ---- summary / description ----
                         if (!course?.summary.isNullOrBlank()) {

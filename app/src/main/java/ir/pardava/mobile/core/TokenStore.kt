@@ -31,6 +31,7 @@ class TokenStore(private val context: Context) {
         val BASE_URL = stringPreferencesKey("base_url")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val FONT_SCALE = stringPreferencesKey("font_scale")
+        val INSTALL_ID = stringPreferencesKey("install_id")
     }
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
@@ -50,6 +51,12 @@ class TokenStore(private val context: Context) {
     val themeMode: Flow<String> = context.dataStore.data.map { p -> p[Keys.THEME_MODE] ?: ThemeMode.SYSTEM }
 
     val fontScale: Flow<String> = context.dataStore.data.map { p -> p[Keys.FONT_SCALE] ?: FontScale.NORMAL }
+
+    val installId: Flow<String> = context.dataStore.data.map { p -> p[Keys.INSTALL_ID] ?: "" }
+
+    suspend fun setInstallId(id: String) {
+        context.dataStore.edit { it[Keys.INSTALL_ID] = id }
+    }
 
     suspend fun snapshot(): SessionSnapshot {
         val p = context.dataStore.data.first()

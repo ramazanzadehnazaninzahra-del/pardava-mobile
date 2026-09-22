@@ -135,4 +135,37 @@
     <string name="update_uptodate_body">شما آخرین نسخهٔ اپلیکیشن پردآوا را دارید.</string>
     <string name="google_no_browser">مرورگری برای ورود با گوگل پیدا نشد.</string>
     <string name="google_sign_in_hint">در صفحهٔ سایت وارد شوید؛ خودکار به اپ برمی‌گردید.</string>
+
+    <!-- ویدیو پلیر -->
+    <string name="player_play_pause">پخش / توقف</string>
+    <string name="player_back_10">۱۰ ثانیه عقب</string>
+    <string name="player_forward_10">۱۰ ثانیه جلو</string>
+    <string name="player_fullscreen">تمام‌صفحه</string>
+
+    <!-- آزمون -->
+    <string name="quiz_title">آزمون دوره</string>
+    <string name="quiz_start">شروع آزمون</string>
+    <string name="quiz_retake">آزمون مجدد</string>
+    <string name="quiz_meta_line">%1$d سوال · حد نصاب %2$d٪</string>
+    <string name="quiz_questions_count">%1$d سوال</string>
+    <string name="quiz_pass_line">حد نصاب %1$d٪</string>
+    <string name="quiz_best">بهترین نمرهٔ شما: %1$d٪</string>
+    <string name="quiz_score">نمرهٔ شما: %1$d٪</string>
+    <string name="quiz_passed">قبول شدید؛ آفرین!</string>
+    <string name="quiz_failed">این‌بار نشد — حد نصاب %1$d٪ است.</string>
+    <string name="quiz_correct_count">%1$d از %2$d درست</string>
+    <string name="quiz_submit">ثبت پاسخ‌ها</string>
+
+    <!-- گواهی‌نامه -->
+    <string name="cert_title">گواهی‌نامهٔ پایان دوره</string>
+    <string name="cert_print">چاپ / ذخیرهٔ PDF</string>
+    <string name="cert_card_title">گواهی‌نامهٔ پایان دوره</string>
+    <string name="cert_issued_hint">گواهی‌نامهٔ شما صادر شده است.</string>
+    <string name="cert_progress_hint">پیشرفت شما: %1$d از %2$d درس</string>
+    <string name="cert_view">مشاهده</string>
+
+    <!-- امتیازدهی -->
+    <string name="rating_summary">میانگین %1$s از ۵ · %2$s نفر</string>
+    <string name="rating_none">هنوز امتیازی ثبت نشده است</string>
+    <string name="rating_yours">امتیاز شما:</string>
 </resources>

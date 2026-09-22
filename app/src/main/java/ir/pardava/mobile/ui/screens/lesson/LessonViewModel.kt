@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import ir.pardava.mobile.core.ApiClient
 import ir.pardava.mobile.data.dto.ApiException
 import ir.pardava.mobile.data.dto.LessonContentResponse
+import ir.pardava.mobile.data.dto.WatchIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,16 +38,31 @@ class LessonViewModel(
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message
 
+    /** Server-saved playback position to resume from (null → start from scratch). */
+    private val _resumeSec = MutableStateFlow<Double?>(null)
+    val resumeSec: StateFlow<Double?> = _resumeSec
+
     /** One-shot event: completion succeeded → refresh the parent course. */
     private val _completed = MutableStateFlow(false)
     val completed: StateFlow<Boolean> = _completed
 
+    // watch-progress save throttle: at most one POST every SAVE_INTERVAL_MS
+    private var lastSavedAtMs = 0L
+    private var lastSavedPosSec = -1.0
+
     fun consumeMessage() { _message.value = null }
+
+    /** Absolute streaming URL for the lesson video (Range-capable endpoint). */
+    fun videoUrl(): String? =
+        client.session.baseUrl.trimEnd('/').let { "$it/api/courses/$slug/lessons/$lessonId/video" }
 
     /** In-place prev/next navigation within the same screen. */
     fun openLesson(newId: Long) {
         if (newId != lessonId) {
             lessonId = newId
+            _resumeSec.value = null
+            lastSavedAtMs = 0L
+            lastSavedPosSec = -1.0
             load()
         }
     }
@@ -56,9 +72,37 @@ class LessonViewModel(
         viewModelScope.launch {
             try {
                 _state.value = LessonUiState.Ready(client.call { client.api.lesson(slug, lessonId) })
+                // resume position for signed-in users (fire-and-forget)
+                if (client.session.isSignedIn) {
+                    viewModelScope.launch {
+                        runCatching {
+                            val progress = client.call { client.api.watchProgress(slug, lessonId) }
+                            progress.watch?.position?.let { pos ->
+                                if (pos > 1.0) _resumeSec.value = pos
+                            }
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 _state.value = LessonUiState.Failure(e.message ?: "error")
             }
+        }
+    }
+
+    /**
+     * Periodic watch-progress save from the player ticker (fire-and-forget,
+     * server-throttled). Guests are skipped — there is no identity to attach.
+     */
+    fun saveProgress(positionSec: Double, durationSec: Double) {
+        if (!client.session.isSignedIn) return
+        if (positionSec <= 0) return
+        val now = System.currentTimeMillis()
+        if (now - lastSavedAtMs < SAVE_INTERVAL_MS) return
+        if ((positionSec - lastSavedPosSec).let { it >= 0 && it < 1.0 } && lastSavedPosSec >= 0) return
+        lastSavedAtMs = now
+        lastSavedPosSec = positionSec
+        viewModelScope.launch {
+            runCatching { client.call { client.api.saveWatchProgress(slug, lessonId, WatchIn(positionSec, durationSec)) } }
         }
     }
 
@@ -160,5 +204,9 @@ class LessonViewModel(
             else -> "bin"
         }
         return "pardava-lesson-$lessonId.$ext"
+    }
+
+    companion object {
+        private const val SAVE_INTERVAL_MS = 10_000L
     }
 }

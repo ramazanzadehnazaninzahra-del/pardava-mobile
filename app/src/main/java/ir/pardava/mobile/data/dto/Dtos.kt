@@ -196,7 +196,17 @@ data class LessonContentDto(
     @SerialName("next_id") val nextId: Long? = null,
     @SerialName("next_state") val nextState: String? = null,
     @SerialName("has_file") val hasFile: Boolean? = null,
+    @SerialName("has_video") val hasVideo: Boolean? = null,
     @SerialName("file_name") val fileName: String? = null,
+    val file: LessonFileDto? = null,
+)
+
+/** Attachment metadata (url may be empty when the master stays on storage). */
+@Serializable
+data class LessonFileDto(
+    val name: String? = null,
+    val size: Long? = null,
+    val url: String? = null,
 )
 
 @Serializable
@@ -208,6 +218,178 @@ data class LessonContentResponse(
     val course: CourseRefDto? = null,
     val lesson: LessonContentDto? = null,
 ) : Envelope
+
+/* ---------------- learning bundle (watch progress, quiz, certificate, rating) ---------------- */
+
+/** Saved playback position for a lesson (resume support). */
+@Serializable
+data class WatchDto(
+    val position: Double? = null,
+    val duration: Double? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+@Serializable
+data class WatchIn(val position: Double, val duration: Double)
+
+@Serializable
+data class ProgressResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val watch: WatchDto? = null,
+) : Envelope
+
+@Serializable
+data class ProgressSaveResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val saved: Boolean? = null,
+    val position: Double? = null,
+) : Envelope
+
+@Serializable
+data class RatingSummaryDto(
+    val avg: Double? = null,
+    val count: Int? = null,
+)
+
+@Serializable
+data class MyRatingDto(
+    val stars: Int? = null,
+    val review: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+@Serializable
+data class CertificateDto(
+    val available: Boolean? = null,
+    val eligible: Boolean? = null,
+    val issued: Boolean? = null,
+    val serial: String? = null,
+    val url: String? = null,
+    val requirements: CertRequirementsDto? = null,
+)
+
+@Serializable
+data class CertRequirementsDto(
+    val paid: Boolean? = null,
+    @SerialName("full_access") val fullAccess: Boolean? = null,
+    val completed: Int? = null,
+    val total: Int? = null,
+)
+
+@Serializable
+data class QuizMetaDto(
+    val title: String? = null,
+    @SerialName("title_en") val titleEn: String? = null,
+    @SerialName("pass_percent") val passPercent: Int? = null,
+    val questions: Int? = null,
+    val best: Int? = null,
+    val attempts: Int? = null,
+)
+
+/** One-call bundle powering the course screen extras. */
+@Serializable
+data class LearningResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val course: CourseRefDto? = null,
+    @SerialName("lesson_count") val lessonCount: Int? = null,
+    val rating: RatingSummaryDto? = null,
+    @SerialName("signed_in") val signedIn: Boolean? = null,
+    @SerialName("full_access") val fullAccess: Boolean? = null,
+    @SerialName("completed_count") val completedCount: Int? = null,
+    @SerialName("my_rating") val myRating: MyRatingDto? = null,
+    val quiz: QuizMetaDto? = null,
+    val certificate: CertificateDto? = null,
+) : Envelope
+
+@Serializable
+data class QuizQuestionDto(
+    val id: Long? = null,
+    val position: Int? = null,
+    val text: String? = null,
+    val options: Map<String, String> = emptyMap(),
+    val points: Int? = null,
+)
+
+@Serializable
+data class QuizDetailResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val quiz: QuizDto? = null,
+) : Envelope
+
+@Serializable
+data class QuizDto(
+    val title: String? = null,
+    @SerialName("pass_percent") val passPercent: Int? = null,
+    val questions: List<QuizQuestionDto> = emptyList(),
+    val best: Int? = null,
+    val attempts: Int? = null,
+)
+
+@Serializable
+data class QuizSubmitIn(val answers: Map<String, String>)
+
+@Serializable
+data class QuizResultDto(
+    val score: Int? = null,
+    val correct: Int? = null,
+    val total: Int? = null,
+    val passed: Boolean? = null,
+    @SerialName("pass_percent") val passPercent: Int? = null,
+    val best: Int? = null,
+)
+
+@Serializable
+data class QuizSubmitResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val result: QuizResultDto? = null,
+) : Envelope
+
+@Serializable
+data class RateIn(val stars: Int, val review: String? = null)
+
+@Serializable
+data class RateResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val rating: RatingSummaryDto? = null,
+    @SerialName("my_stars") val myStars: Int? = null,
+) : Envelope
+
+/** Android install/usage event batch — recorded server-side in customer_events. */
+@Serializable
+data class AppLogEvent(
+    val name: String,
+    val ts: Long? = null,
+    val path: String? = null,
+    val label: String? = null,
+    val detail: Map<String, String>? = null,
+    val value: Double? = null,
+)
+
+@Serializable
+data class AppLogBatchIn(
+    val events: List<AppLogEvent>,
+    @SerialName("install_id") val installId: String? = null,
+    @SerialName("session_id") val sessionId: String? = null,
+    val lang: String? = null,
+)
 
 @Serializable
 data class CompleteResponse(

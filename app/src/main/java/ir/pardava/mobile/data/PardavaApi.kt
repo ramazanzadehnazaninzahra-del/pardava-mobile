@@ -1,5 +1,6 @@
 package ir.pardava.mobile.data
 
+import ir.pardava.mobile.data.dto.AppLogBatchIn
 import ir.pardava.mobile.data.dto.ArticleDetailResponse
 import ir.pardava.mobile.data.dto.ArticlesResponse
 import ir.pardava.mobile.data.dto.CancelAuthIn
@@ -11,16 +12,25 @@ import ir.pardava.mobile.data.dto.ExchangeResponse
 import ir.pardava.mobile.data.dto.GoogleLoginIn
 import ir.pardava.mobile.data.dto.HomeResponse
 import ir.pardava.mobile.data.dto.LeagueResponse
+import ir.pardava.mobile.data.dto.LearningResponse
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LoginIn
 import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestIn
 import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.OtpVerifyIn
+import ir.pardava.mobile.data.dto.ProgressResponse
+import ir.pardava.mobile.data.dto.ProgressSaveResponse
+import ir.pardava.mobile.data.dto.QuizDetailResponse
+import ir.pardava.mobile.data.dto.QuizSubmitIn
+import ir.pardava.mobile.data.dto.QuizSubmitResponse
+import ir.pardava.mobile.data.dto.RateIn
+import ir.pardava.mobile.data.dto.RateResponse
 import ir.pardava.mobile.data.dto.ServicesResponse
 import ir.pardava.mobile.data.dto.SimpleOkResponse
 import ir.pardava.mobile.data.dto.TokenResponse
 import ir.pardava.mobile.data.dto.VersionResponse
+import ir.pardava.mobile.data.dto.WatchIn
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -87,6 +97,44 @@ interface PardavaApi {
         @Path("slug") slug: String,
         @Path("lessonId") lessonId: Long,
     ): CompleteResponse
+
+    /* ---- learning extras (watch progress, quiz, rating, certificate) ---- */
+
+    @GET("api/courses/{slug}/learning")
+    suspend fun learning(@Path("slug") slug: String): LearningResponse
+
+    @GET("api/courses/{slug}/lessons/{lessonId}/progress")
+    suspend fun watchProgress(
+        @Path("slug") slug: String,
+        @Path("lessonId") lessonId: Long,
+    ): ProgressResponse
+
+    @POST("api/courses/{slug}/lessons/{lessonId}/progress")
+    suspend fun saveWatchProgress(
+        @Path("slug") slug: String,
+        @Path("lessonId") lessonId: Long,
+        @Body body: WatchIn,
+    ): ProgressSaveResponse
+
+    @GET("api/courses/{slug}/quiz")
+    suspend fun quiz(@Path("slug") slug: String): QuizDetailResponse
+
+    @POST("api/courses/{slug}/quiz")
+    suspend fun submitQuiz(
+        @Path("slug") slug: String,
+        @Body body: QuizSubmitIn,
+    ): QuizSubmitResponse
+
+    @POST("api/courses/{slug}/rate")
+    suspend fun rate(
+        @Path("slug") slug: String,
+        @Body body: RateIn,
+    ): RateResponse
+
+    /* ---- android install/usage logging (fire-and-forget) ---- */
+
+    @POST("api/mobile/log")
+    suspend fun logEvents(@Body body: AppLogBatchIn): SimpleOkResponse
 
     /* ---- mobile service (https://pardava.ir/api/mobile) — version sync,
      *      content aggregate, articles and the Google web-bridge exchange ---- */

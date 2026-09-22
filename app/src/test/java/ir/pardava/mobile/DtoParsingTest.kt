@@ -7,8 +7,13 @@ import ir.pardava.mobile.data.dto.CourseDetailResponse
 import ir.pardava.mobile.data.dto.CoursesListResponse
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LeagueResponse
+import ir.pardava.mobile.data.dto.LearningResponse
 import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestResponse
+import ir.pardava.mobile.data.dto.ProgressResponse
+import ir.pardava.mobile.data.dto.QuizDetailResponse
+import ir.pardava.mobile.data.dto.QuizSubmitResponse
+import ir.pardava.mobile.data.dto.RateResponse
 import ir.pardava.mobile.data.dto.TokenResponse
 import ir.pardava.mobile.data.dto.requireOk
 import kotlinx.serialization.json.Json
@@ -162,6 +167,69 @@ class DtoParsingTest {
         }
         assertTrue(thrown.isFailure)
     }
+    @Test
+    fun `learning bundle parses live shape`() {
+        val body = """
+        {"ok":true,"course":{"slug":"cert-course","title":"X","price":500000},"lesson_count":3,
+        "rating":{"avg":4.5,"count":2},"signed_in":true,"full_access":true,"completed_count":3,
+        "my_rating":{"stars":5,"review":"","updated_at":"2026-09-22"},
+        "quiz":{"title":"آزمون","title_en":"","pass_percent":60,"questions":4,"best":75,"attempts":2},
+        "certificate":{"available":true,"eligible":true,"issued":true,"serial":"PDV-CERT-ABC123",
+        "url":"https://pardava.ir/courses/cert-course/certificate",
+        "requirements":{"paid":true,"full_access":true,"completed":3,"total":3}}}
+        """.trimIndent()
+        val parsed = json.decodeFromString(LearningResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertEquals(4.5, parsed.rating?.avg!!, 0.01)
+        assertEquals(2, parsed.rating?.count)
+        assertEquals(75, parsed.quiz?.best)
+        assertTrue(parsed.certificate?.issued == true)
+        assertTrue(parsed.certificate?.serial!!.startsWith("PDV-CERT-"))
+    }
+
+    @Test
+    fun `learning bundle guest shape`() {
+        val body = """{"ok":true,"course":null,"lesson_count":2,"rating":{"avg":null,"count":0},
+        "signed_in":false,"my_rating":null,"quiz":null,"certificate":null,
+        "completed_count":0,"full_access":false}"""
+        val parsed = json.decodeFromString(LearningResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertEquals(false, parsed.signedIn)
+        assertNull(parsed.certificate)
+    }
+
+    @Test
+    fun `quiz detail hides correct answers`() {
+        val body = """
+        {"ok":true,"quiz":{"title":"آزمون","pass_percent":60,"questions":[
+        {"id":7,"position":1,"text":"متن سوال","options":{"a":"الف","b":"ب","c":"ج","d":"د"},"points":1},
+        {"id":8,"position":2,"text":"سوال دو","options":{"a":"x","b":"y","c":"z","d":"w"},"points":2}],
+        "best":null,"attempts":0}}
+        """.trimIndent()
+        val parsed = json.decodeFromString(QuizDetailResponse.serializer(), body)
+        val q = parsed.quiz?.questions?.first()
+        assertEquals("ب", q?.options?.get("b"))
+        assertTrue(!body.contains("correct_option"))
+    }
+
+    @Test
+    fun `quiz submit and rate responses parse`() {
+        val submit = """{"ok":true,"result":{"score":50,"correct":1,"total":2,"passed":false,"pass_percent":60,"best":75}}"""
+        val rate = """{"ok":true,"rating":{"avg":4.0,"count":1},"my_stars":4}"""
+        val s = json.decodeFromString(QuizSubmitResponse.serializer(), submit)
+        val r = json.decodeFromString(RateResponse.serializer(), rate)
+        assertEquals(50, s.result?.score)
+        assertEquals(false, s.result?.passed)
+        assertEquals(4, r.myStars)
+        assertEquals(4.0, r.rating?.avg!!, 0.01)
+    }
+
+    @Test
+    fun `watch progress parses resume payload`() {
+        val body = """{"ok":true,"watch":{"position":123.5,"duration":600.0,"updated_at":"2026-09-22 20:00:00"}}"""
+        val parsed = json.decodeFromString(ProgressResponse.serializer(), body)
+        assertEquals(123.5, parsed.watch?.position!!, 0.01)
+    }
 }
 
 class UrlNormalizationTest {
@@ -193,4 +261,5 @@ class UrlNormalizationTest {
             SessionManager.migrateLegacyUrl("https://pardava.ir/", "https://pardava.ir/"),
         )
     }
+
 }

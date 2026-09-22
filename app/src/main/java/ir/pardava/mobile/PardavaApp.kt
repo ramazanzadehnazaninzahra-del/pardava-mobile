@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import ir.pardava.mobile.core.ApiClient
 import ir.pardava.mobile.core.BuildConfigDefault
+import ir.pardava.mobile.core.EventLogger
 import ir.pardava.mobile.core.FontScale
 import ir.pardava.mobile.core.SessionManager
 import ir.pardava.mobile.core.ThemeMode
@@ -15,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** Appearance preferences surfaced in the Settings screen. */
@@ -28,6 +30,8 @@ class PardavaApp : Application() {
     lateinit var session: SessionManager
         private set
     lateinit var api: ApiClient
+        private set
+    lateinit var logger: EventLogger
         private set
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -60,8 +64,26 @@ class PardavaApp : Application() {
         BuildConfigDefault.googleClientId = BuildConfig.GOOGLE_CLIENT_ID
         session = SessionManager(store, appScope)
         api = ApiClient(session, store, debugLogging = BuildConfig.DEBUG)
+        logger = EventLogger.get(api, store) { currentLanguage() }
+        logger.start(this)
         appScope.launch {
             session.restore()
+        }
+        // install & session telemetry (site-side customer_events, source=android)
+        appScope.launch {
+            val firstInstall = store.installId.first().isBlank()
+            if (firstInstall) {
+                logger.log(
+                    "app_install",
+                    detail = mapOf(
+                        "version" to BuildConfig.VERSION_NAME,
+                        "version_code" to BuildConfig.VERSION_CODE.toString(),
+                        "sdk" to android.os.Build.VERSION.SDK_INT.toString(),
+                        "model" to android.os.Build.MODEL.take(40),
+                    ),
+                )
+            }
+            logger.log("app_session", detail = mapOf("version" to BuildConfig.VERSION_NAME))
         }
         appScope.launch {
             store.themeMode.collect { mode -> _settings.value = _settings.value.copy(themeMode = mode) }

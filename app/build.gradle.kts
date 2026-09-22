@@ -27,8 +27,8 @@ android {
         applicationId = "ir.pardava.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 7
-        versionName = "0.8.0"
+        versionCode = 8
+        versionName = "0.9.0"
         vectorDrawables { useSupportLibrary = true }
         // Base URL is the SITE ROOT; the app appends api/courses/… itself.
         // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/
@@ -102,6 +102,9 @@ dependencies {
 
     implementation(libs.coil.compose)
 
+    // Media3/ExoPlayer — professional video playback with resume
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 
