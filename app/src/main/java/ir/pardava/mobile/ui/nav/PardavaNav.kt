@@ -29,8 +29,6 @@ import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
 import ir.pardava.mobile.core.UpdateManager
 import ir.pardava.mobile.data.dto.ExchangeCodeIn
-import ir.pardava.mobile.data.dto.MobileArticleDto
-import ir.pardava.mobile.data.dto.ServiceItemDto
 import ir.pardava.mobile.ui.components.MainScaffold
 import ir.pardava.mobile.ui.screens.articles.ArticleReaderScreen
 import ir.pardava.mobile.ui.screens.course.CourseScreen
@@ -96,6 +94,12 @@ fun PardavaNav(app: PardavaApp) {
                     val token = resp.token
                     if (resp.ok == true && token != null) {
                         app.session.saveSession(token, resp.user)
+                        // Visible confirmation on every screen (snackbar host below is app-wide).
+                        scope.launch { snackbar.showSnackbar(app.getString(R.string.auth_success)) }
+                        // Leave the login screen immediately — the user is signed in.
+                        if (nav.currentBackStackEntry?.destination?.route == Routes.LOGIN) {
+                            nav.popBackStack()
+                        }
                     } else if (!app.session.isSignedIn) {
                         scope.launch {
                             snackbar.showSnackbar(resp.error ?: app.getString(R.string.error_generic))
@@ -151,10 +155,12 @@ fun PardavaNav(app: PardavaApp) {
         )
     }
 
-    NavHost(navController = nav, startDestination = Routes.MAIN) {
+    // One snackbar host for the whole app — messages now surface on every route
+    // (previously only the MAIN tab had a host, hiding login errors there).
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { _ ->
+        NavHost(navController = nav, startDestination = Routes.MAIN) {
 
-        composable(Routes.MAIN) {
-            Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { _ ->
+            composable(Routes.MAIN) {
                 MainScaffold(
                     app = app,
                     onOpenCourse = { slug -> nav.navigate(Routes.course(slug)) },
@@ -172,105 +178,106 @@ fun PardavaNav(app: PardavaApp) {
                     onOpenLogin = { nav.navigate(Routes.LOGIN) },
                 )
             }
-        }
 
-        composable(Routes.LOGIN) {
-            LoginScreen(
-                app = app,
-                onSignedIn = { nav.popBackStack() },
-            )
-        }
+            composable(Routes.LOGIN) {
+                LoginScreen(
+                    app = app,
+                    onSignedIn = { nav.popBackStack() },
+                )
+            }
 
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
-                app = app,
-                onBack = { nav.popBackStack() },
-            )
-        }
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    app = app,
+                    onBack = { nav.popBackStack() },
+                    onOpenSite = { nav.navigate(Routes.web("پردآوا", app.siteUrl("/#about"))) },
+                )
+            }
 
-        composable(Routes.LEAGUE) {
-            LeaderboardScreen(app = app, onBack = { nav.popBackStack() })
-        }
+            composable(Routes.LEAGUE) {
+                LeaderboardScreen(app = app, onBack = { nav.popBackStack() })
+            }
 
-        composable(
-            Routes.COURSE,
-            arguments = listOf(navArgument("slug") { type = NavType.StringType }),
-        ) { entry ->
-            val courseSlug = entry.arguments?.getString("slug") ?: ""
-            CourseScreen(
-                app = app,
-                slug = courseSlug,
-                onBack = { nav.popBackStack() },
-                onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
-                onOpenLogin = { nav.navigate(Routes.LOGIN) },
-                onOpenQuiz = { nav.navigate(Routes.quiz(it)) },
-                onOpenCertificate = { nav.navigate(Routes.cert(it)) },
-            )
-        }
+            composable(
+                Routes.COURSE,
+                arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+            ) { entry ->
+                val courseSlug = entry.arguments?.getString("slug") ?: ""
+                CourseScreen(
+                    app = app,
+                    slug = courseSlug,
+                    onBack = { nav.popBackStack() },
+                    onOpenLesson = { slug, lessonId -> nav.navigate(Routes.lesson(slug, lessonId)) },
+                    onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                    onOpenQuiz = { nav.navigate(Routes.quiz(it)) },
+                    onOpenCertificate = { nav.navigate(Routes.cert(it)) },
+                )
+            }
 
-        composable(
-            Routes.LESSON,
-            arguments = listOf(
-                navArgument("slug") { type = NavType.StringType },
-                navArgument("lessonId") { type = NavType.LongType },
-            ),
-        ) { entry ->
-            LessonScreen(
-                app = app,
-                slug = entry.arguments?.getString("slug") ?: "",
-                lessonId = entry.arguments?.getLong("lessonId") ?: 0L,
-                onBack = { nav.popBackStack() },
-                onOpenLogin = { nav.navigate(Routes.LOGIN) },
-            )
-        }
+            composable(
+                Routes.LESSON,
+                arguments = listOf(
+                    navArgument("slug") { type = NavType.StringType },
+                    navArgument("lessonId") { type = NavType.LongType },
+                ),
+            ) { entry ->
+                LessonScreen(
+                    app = app,
+                    slug = entry.arguments?.getString("slug") ?: "",
+                    lessonId = entry.arguments?.getLong("lessonId") ?: 0L,
+                    onBack = { nav.popBackStack() },
+                    onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                )
+            }
 
-        composable(
-            Routes.WEB,
-            arguments = listOf(
-                navArgument("title") { type = NavType.StringType },
-                navArgument("url") { type = NavType.StringType },
-            ),
-        ) { entry ->
-            WebScreen(
-                url = entry.arguments?.getString("url") ?: "",
-                title = entry.arguments?.getString("title") ?: "پردآوا",
-                isDark = darkTheme,
-                onBack = { nav.popBackStack() },
-            )
-        }
+            composable(
+                Routes.WEB,
+                arguments = listOf(
+                    navArgument("title") { type = NavType.StringType },
+                    navArgument("url") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                WebScreen(
+                    url = entry.arguments?.getString("url") ?: "",
+                    title = entry.arguments?.getString("title") ?: "پردآوا",
+                    isDark = darkTheme,
+                    onBack = { nav.popBackStack() },
+                )
+            }
 
-        composable(
-            Routes.ARTICLE,
-            arguments = listOf(navArgument("key") { type = NavType.StringType }),
-        ) { entry ->
-            ArticleReaderScreen(
-                app = app,
-                key = entry.arguments?.getString("key") ?: "",
-                isDark = darkTheme,
-                onBack = { nav.popBackStack() },
-            )
-        }
+            composable(
+                Routes.ARTICLE,
+                arguments = listOf(navArgument("key") { type = NavType.StringType }),
+            ) { entry ->
+                ArticleReaderScreen(
+                    app = app,
+                    key = entry.arguments?.getString("key") ?: "",
+                    isDark = darkTheme,
+                    onBack = { nav.popBackStack() },
+                )
+            }
 
-        composable(
-            Routes.QUIZ,
-            arguments = listOf(navArgument("slug") { type = NavType.StringType }),
-        ) { entry ->
-            ir.pardava.mobile.ui.screens.quiz.QuizScreen(
-                app = app,
-                slug = entry.arguments?.getString("slug") ?: "",
-                onBack = { nav.popBackStack() },
-            )
-        }
+            composable(
+                Routes.QUIZ,
+                arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+            ) { entry ->
+                ir.pardava.mobile.ui.screens.quiz.QuizScreen(
+                    app = app,
+                    slug = entry.arguments?.getString("slug") ?: "",
+                    onBack = { nav.popBackStack() },
+                )
+            }
 
-        composable(
-            Routes.CERT,
-            arguments = listOf(navArgument("slug") { type = NavType.StringType }),
-        ) { entry ->
-            ir.pardava.mobile.ui.screens.certificate.CertificateScreen(
-                app = app,
-                slug = entry.arguments?.getString("slug") ?: "",
-                onBack = { nav.popBackStack() },
-            )
+            composable(
+                Routes.CERT,
+                arguments = listOf(navArgument("slug") { type = NavType.StringType }),
+            ) { entry ->
+                ir.pardava.mobile.ui.screens.certificate.CertificateScreen(
+                    app = app,
+                    slug = entry.arguments?.getString("slug") ?: "",
+                    onBack = { nav.popBackStack() },
+                )
+            }
         }
     }
 

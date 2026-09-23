@@ -100,6 +100,33 @@ class CourseViewModel(
         action { client.api.enroll(slug) }
     }
 
+    /**
+     * One-tap path: enroll (free course) and open the tapped lesson right away.
+     * Paid courses surface the server's action=purchase message verbatim.
+     */
+    fun enrollAndOpen(signedIn: Boolean, lessonId: Long, onOpenLesson: (Long) -> Unit) {
+        if (!signedIn) {
+            _action.value = CourseAction.NeedLogin("برای دسترسی به درس‌ها ابتدا وارد حساب شوید.")
+            return
+        }
+        if (_busy.value) return
+        _busy.value = true
+        viewModelScope.launch {
+            try {
+                val res = client.call { client.api.enroll(slug) }
+                _action.value = CourseAction.Message(res.message ?: "ثبت‌نام انجام شد.")
+                load()
+                onOpenLesson(lessonId)
+            } catch (e: ApiException) {
+                _action.value = CourseAction.Message(e.message, isError = true)
+            } catch (e: Exception) {
+                _action.value = CourseAction.Message(e.message ?: "خطا", isError = true)
+            } finally {
+                _busy.value = false
+            }
+        }
+    }
+
     /** Paid course purchase request — administrator approves it afterwards. */
     fun purchase(signedIn: Boolean) {
         if (!signedIn) {

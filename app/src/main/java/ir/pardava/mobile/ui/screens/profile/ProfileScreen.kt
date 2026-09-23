@@ -69,7 +69,7 @@ fun ProfileScreen(
     val vm: ProfileViewModel = viewModel(factory = SimpleVmFactory(app.api) { ProfileViewModel(it) })
     val state by vm.state.collectAsStateWithLifecycle()
     val lang = app.currentLanguage()
-    val signedIn = app.session.isSignedIn
+    val signedIn by app.signedIn.collectAsStateWithLifecycle()
 
     LaunchedEffect(signedIn) { vm.refresh(signedIn) }
 

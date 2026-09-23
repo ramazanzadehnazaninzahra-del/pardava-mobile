@@ -160,10 +160,12 @@ data class LessonItemDto(
     val state: String? = null,
 ) {
     companion object {
+        // Server vocabulary (courses_page._lesson_state): open | preview | locked | enroll | done
         const val STATE_PREVIEW = "preview"
         const val STATE_LOCKED = "locked"
-        const val STATE_AVAILABLE = "available"
-        const val STATE_COMPLETED = "completed"
+        const val STATE_OPEN = "open"
+        const val STATE_ENROLL = "enroll"
+        const val STATE_DONE = "done"
     }
 }
 

@@ -1,5 +1,6 @@
 package ir.pardava.mobile.ui.screens.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,7 +37,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,7 +61,7 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(app: PardavaApp, onBack: () -> Unit) {
+fun SettingsScreen(app: PardavaApp, onBack: () -> Unit, onOpenSite: () -> Unit) {
     val settings by app.settings.collectAsStateWithLifecycle()
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -188,24 +193,43 @@ fun SettingsScreen(app: PardavaApp, onBack: () -> Unit) {
             }
             Spacer(Modifier.height(16.dp))
 
-            // ---- about ----
+            // ---- about: no marketing copy — “about us” lives on the website ----
             SettingsSection(title = stringResource(R.string.settings_about)) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                    Text(
-                        stringResource(R.string.settings_about_app, stringResource(R.string.app_name)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                    )
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onOpenSite() }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.OpenInNew,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                stringResource(R.string.settings_about_open),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                stringResource(R.string.settings_about_site),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        stringResource(R.string.settings_about_site),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

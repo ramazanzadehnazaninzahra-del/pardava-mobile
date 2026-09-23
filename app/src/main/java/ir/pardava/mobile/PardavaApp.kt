@@ -41,6 +41,14 @@ class PardavaApp : Application() {
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
     /**
+     * Compose-observable signed-in state — flips the instant a session is saved
+     * or cleared (Google web-bridge, OTP, password, logout) so every open screen
+     * refreshes without re-entering it.
+     */
+    private val _signedIn = MutableStateFlow(false)
+    val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
+
+    /**
      * One-time exchange code delivered by the pardava://auth/callback deep link
      * after the Google web-bridge flow completes on pardava.ir. Consumed by the
      * navigation host which swaps the code for a real pdv_ session token.
@@ -63,11 +71,13 @@ class PardavaApp : Application() {
         BuildConfigDefault.url = BuildConfig.DEFAULT_BASE_URL
         BuildConfigDefault.googleClientId = BuildConfig.GOOGLE_CLIENT_ID
         session = SessionManager(store, appScope)
+        session.onSessionChanged = { signed -> _signedIn.value = signed }
         api = ApiClient(session, store, debugLogging = BuildConfig.DEBUG)
         logger = EventLogger.get(api, store) { currentLanguage() }
         logger.start(this)
         appScope.launch {
             session.restore()
+            _signedIn.value = session.isSignedIn
         }
         // install & session telemetry (site-side customer_events, source=android)
         appScope.launch {

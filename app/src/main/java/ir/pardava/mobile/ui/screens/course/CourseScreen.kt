@@ -92,7 +92,7 @@ fun CourseScreen(
     val busy by vm.busy.collectAsStateWithLifecycle()
     val action by vm.action.collectAsStateWithLifecycle()
     val lang = app.currentLanguage()
-    val signedIn = app.session.isSignedIn
+    val signedIn by app.signedIn.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(slug) { vm.load() }
@@ -418,35 +418,39 @@ fun CourseScreen(
                             fontWeight = FontWeight.Bold,
                         )
                         Spacer(Modifier.height(8.dp))
+                        // Unified lesson-tap policy: guests → previews or login;
+                        // enrolled → any unlocked lesson; signed-in but not enrolled
+                        // → enroll-and-open (free) or the server's purchase message.
+                        fun openLessonRow(lesson: LessonItemDto) {
+                            val id = lesson.id ?: return
+                            when {
+                                !signedIn -> {
+                                    if (lesson.isFreePreview == true) onOpenLesson(slug, id) else onOpenLogin()
+                                }
+                                detail.enrolled == true -> {
+                                    if (lesson.state != LessonItemDto.STATE_LOCKED) onOpenLesson(slug, id)
+                                }
+                                else -> {
+                                    if (lesson.isFreePreview == true) onOpenLesson(slug, id)
+                                    else vm.enrollAndOpen(signedIn, id) { onOpenLesson(slug, it) }
+                                }
+                            }
+                        }
                         detail.lessons.forEach { lesson ->
+                            // A lesson row is openable only when its content is truly
+                            // reachable: enrolled users (not sequence-locked) or previews.
+                            // Everything else funnels into one tap-handler that either
+                            // opens the lesson or offers enroll/login/purchase.
+                            val openable = when {
+                                detail.enrolled == true -> lesson.state != LessonItemDto.STATE_LOCKED
+                                else -> lesson.isFreePreview == true && lesson.state != LessonItemDto.STATE_LOCKED
+                            }
                             LessonRow(
                                 lesson = lesson,
                                 lang = lang,
-                                unlocked = lesson.state != LessonItemDto.STATE_LOCKED,
-                                onClick = {
-                                    val id = lesson.id
-                                    when {
-                                        id == null -> Unit
-                                        lesson.state == LessonItemDto.STATE_LOCKED -> Unit // row disabled
-                                        else -> onOpenLesson(slug, id)
-                                    }
-                                },
-                                onLockedClick = {
-                                    // Locked: guests → login; enrolled → explain sequence lock
-                                    if (!signedIn) {
-                                        if (lesson.isFreePreview == true) {
-                                            lesson.id?.let { onOpenLesson(slug, it) }
-                                        } else {
-                                            onOpenLogin()
-                                        }
-                                    } else if (detail.enrolled != true) {
-                                        // Not enrolled: allow only previews
-                                        if (lesson.isFreePreview == true) {
-                                            lesson.id?.let { onOpenLesson(slug, it) }
-                                        }
-                                        // else: silently ignore — row shows lock
-                                    }
-                                },
+                                unlocked = openable,
+                                onClick = { openLessonRow(lesson) },
+                                onLockedClick = { openLessonRow(lesson) },
                             )
                             Spacer(Modifier.height(8.dp))
                         }
@@ -466,7 +470,7 @@ private fun LessonRow(
     onClick: () -> Unit,
     onLockedClick: () -> Unit,
 ) {
-    val done = lesson.state == LessonItemDto.STATE_COMPLETED
+    val done = lesson.state == LessonItemDto.STATE_DONE
     val preview = lesson.state == LessonItemDto.STATE_PREVIEW || lesson.isFreePreview == true && unlocked
     Card(
         shape = RoundedCornerShape(14.dp),
