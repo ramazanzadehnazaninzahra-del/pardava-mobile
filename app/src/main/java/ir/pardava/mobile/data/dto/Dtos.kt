@@ -117,6 +117,13 @@ data class SimpleOkResponse(
 data class CourseRefDto(val slug: String? = null, val title: String? = null)
 
 @Serializable
+data class InstructorDto(
+    val name: String? = null,
+    val title: String? = null,
+    @SerialName("photo_url") val photoUrl: String? = null,
+)
+
+@Serializable
 data class CourseCardDto(
     val id: Long? = null,
     val slug: String? = null,
@@ -139,6 +146,7 @@ data class CourseCardDto(
     @SerialName("points_per_lesson") val pointsPerLesson: Int? = null,
     @SerialName("sequential_unlock") val sequentialUnlock: Boolean? = null,
     @SerialName("is_published") val isPublished: Boolean? = null,
+    val instructor: InstructorDto? = null,
 ) {
     val effectiveLessonCount: Int get() = lessonCount ?: lessonsCountAlt ?: 0
     val effectiveFree: Boolean
@@ -321,6 +329,8 @@ data class LearningResponse(
     @SerialName("signed_in") val signedIn: Boolean? = null,
     @SerialName("full_access") val fullAccess: Boolean? = null,
     @SerialName("completed_count") val completedCount: Int? = null,
+    /** امتیازدهی فقط پس از تماشای کامل کل دوره (سرور تعیین می‌کند). */
+    @SerialName("can_rate") val canRate: Boolean? = null,
     @SerialName("my_rating") val myRating: MyRatingDto? = null,
     val quiz: QuizMetaDto? = null,
     val certificate: CertificateDto? = null,

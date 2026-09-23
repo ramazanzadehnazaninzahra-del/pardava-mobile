@@ -172,4 +172,5 @@
     <string name="rating_summary">Average %1$s of 5 · %2$s raters</string>
     <string name="rating_none">No ratings yet</string>
     <string name="rating_yours">Your rating:</string>
+    <string name="rating_locked_hint">Rating unlocks after you finish the whole course.</string>
 </resources>
