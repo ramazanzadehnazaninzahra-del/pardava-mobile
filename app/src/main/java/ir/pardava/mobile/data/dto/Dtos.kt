@@ -93,8 +93,13 @@ data class MeResponse(
     override val action: String? = null,
     val user: UserDto? = null,
     val points: Int? = null,
-    @SerialName("enrolled_count") val enrolledCount: Int? = null,
-    val enrollments: List<CourseRefDto>? = null,
+    /**
+     * Server contract (OpenAPI): `enrollments` is an INTEGER count, not a list.
+     * Treating it as a list broke deserialization on every /auth/me call and
+     * made the profile screen fail permanently. The enrolled course list comes
+     * from /api/courses (each row carries `enrolled`) — see ProfileViewModel.
+     */
+    val enrollments: Int? = null,
 ) : Envelope
 
 @Serializable

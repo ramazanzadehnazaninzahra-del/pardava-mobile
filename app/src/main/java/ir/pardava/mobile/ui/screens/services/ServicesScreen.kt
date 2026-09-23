@@ -63,6 +63,8 @@ fun ServicesScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     var category by rememberSaveable { mutableStateOf<String?>(null) }
 
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.load() }
+
     when (val s = state) {
         is ServicesUiState.Loading -> LoadingBox()
         is ServicesUiState.Failure -> ErrorState(message = s.message, onRetry = { vm.load(force = true) })
