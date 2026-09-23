@@ -146,13 +146,15 @@ class DtoParsingTest {
 
     @Test
     fun `me parses tolerant shape`() {
+        // Live server contract: "enrollments" is an INTEGER count (OpenAPI),
+        // not a list — treating it as a list broke the profile screen (v0.9.1).
         val body = """
         {"ok":true,"user":{"id":7,"username":"sara","name":"سارا"},
-        "points":120,"enrolled_count":2}
+        "points":120,"enrollments":2}
         """.trimIndent()
         val parsed = json.decodeFromString(MeResponse.serializer(), body)
         assertEquals(120, parsed.points)
-        assertEquals(2, parsed.enrolledCount)
+        assertEquals(2, parsed.enrollments)
         assertEquals("سارا", parsed.user?.displayName)
     }
 

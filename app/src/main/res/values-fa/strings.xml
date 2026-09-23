@@ -143,6 +143,8 @@
     <string name="player_back_10">۱۰ ثانیه عقب</string>
     <string name="player_forward_10">۱۰ ثانیه جلو</string>
     <string name="player_fullscreen">تمام‌صفحه</string>
+    <string name="player_error">پخش ویدیو ناموفق بود</string>
+    <string name="player_retry">تلاش دوباره</string>
 
     <!-- آزمون -->
     <string name="quiz_title">آزمون دوره</string>

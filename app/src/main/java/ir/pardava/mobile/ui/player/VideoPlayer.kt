@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -100,6 +102,7 @@ fun LessonVideoPlayer(
     var controlsVisible by remember { mutableStateOf(true) }
     var isFullscreen by remember { mutableStateOf(false) }
     var resumed by remember { mutableStateOf(false) }
+    var errorName by remember { mutableStateOf<String?>(null) }
     val activity = context as? android.app.Activity
 
     // ---- player lifecycle ----
@@ -120,6 +123,13 @@ fun LessonVideoPlayer(
         player = exo
 
         val listener = object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // surface failures visibly (and measure them) instead of a silent black box
+                isBuffering = false
+                errorName = error.errorCodeName
+                onEvent("app_video_error", mapOf("code" to error.errorCodeName.take(60)))
+            }
+
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
                 if (playing) {
@@ -227,8 +237,37 @@ fun LessonVideoPlayer(
             modifier = Modifier.fillMaxSize(),
         )
 
-        if (isBuffering) {
+        if (isBuffering && errorName == null) {
             CircularProgressIndicator(modifier = Modifier.size(38.dp), color = Color.White, strokeWidth = 3.dp)
+        }
+
+        if (errorName != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    stringResource(R.string.player_error),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.White.copy(alpha = 0.18f),
+                    modifier = Modifier.clickable {
+                        val p = player ?: return@clickable
+                        errorName = null
+                        isBuffering = true
+                        p.seekToDefaultPosition()
+                        p.prepare()
+                    },
+                ) {
+                    Text(
+                        stringResource(R.string.player_retry),
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                    )
+                }
+            }
         }
 
         AnimatedVisibility(

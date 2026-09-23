@@ -137,7 +137,7 @@ fun ProfileScreen(
                     )
                     StatCard(
                         icon = { Icon(Icons.Filled.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                        value = Fmt.digits("${s.me.enrolledCount ?: s.me.enrollments?.size ?: 0}", lang),
+                        value = Fmt.digits("${s.me.enrollments ?: s.enrolledCourses.size}", lang),
                         label = stringResource(R.string.enrolled_courses),
                         modifier = Modifier.weight(1f),
                     )
@@ -157,8 +157,8 @@ fun ProfileScreen(
                 Spacer(Modifier.height(16.dp))
 
                 // ---- continue learning ----
-                val enrollments = s.me.enrollments.orEmpty()
-                if (enrollments.isNotEmpty()) {
+                val enrolledCourses = s.enrolledCourses
+                if (enrolledCourses.isNotEmpty()) {
                     Column(Modifier.fillMaxWidth()) {
                         Text(
                             stringResource(R.string.continue_learning),
@@ -172,10 +172,10 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
                         )
-                        enrollments.forEach { ref ->
-                            val slug = ref.slug
+                        enrolledCourses.forEach { course ->
+                            val slug = course.slug
                             if (!slug.isNullOrBlank()) {
-                                EnrollmentRow(title = ref.title ?: slug) { onOpenCourse(slug) }
+                                EnrollmentRow(title = course.title ?: slug) { onOpenCourse(slug) }
                                 Spacer(Modifier.height(8.dp))
                             }
                         }
