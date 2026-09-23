@@ -237,7 +237,12 @@ data class WatchDto(
 )
 
 @Serializable
-data class WatchIn(val position: Double, val duration: Double)
+data class WatchIn(
+    val position: Double,
+    val duration: Double,
+    /** رویداد پایان پخش از سوی کلاینت؛ سرور همین را هم تکمیل خودکار حساب می‌کند. */
+    val completed: Boolean? = null,
+)
 
 @Serializable
 data class ProgressResponse(
@@ -256,6 +261,10 @@ data class ProgressSaveResponse(
     override val action: String? = null,
     val saved: Boolean? = null,
     val position: Double? = null,
+    /** تکمیل خودکار بر اساس زمان تماشا (۹۰٪ یا پایان ویدیو) از سوی سرور. */
+    val completed: Boolean? = null,
+    val points: Int? = null,
+    @SerialName("total_points") val totalPoints: Int? = null,
 ) : Envelope
 
 @Serializable

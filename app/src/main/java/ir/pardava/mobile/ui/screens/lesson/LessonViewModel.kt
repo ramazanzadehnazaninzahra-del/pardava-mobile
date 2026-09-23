@@ -63,6 +63,7 @@ class LessonViewModel(
         if (newId != lessonId) {
             lessonId = newId
             _resumeSec.value = null
+            _completed.value = false
             lastSavedAtMs = 0L
             lastSavedPosSec = -1.0
             load()
@@ -123,17 +124,35 @@ class LessonViewModel(
     /**
      * Periodic watch-progress save from the player ticker (fire-and-forget,
      * server-throttled). Guests are skipped — there is no identity to attach.
+     *
+     * Auto-completion: the server marks the lesson complete (and awards the
+     * points, idempotently) once watch time reaches 90% or the video ends —
+     * the flag arrives in this response, no extra request is needed.
      */
     fun saveProgress(positionSec: Double, durationSec: Double) {
         if (!client.session.isSignedIn) return
         if (positionSec <= 0) return
+        val atEnd = durationSec > 0 && positionSec >= durationSec - 0.75
         val now = System.currentTimeMillis()
-        if (now - lastSavedAtMs < SAVE_INTERVAL_MS) return
-        if ((positionSec - lastSavedPosSec).let { it >= 0 && it < 1.0 } && lastSavedPosSec >= 0) return
+        if (!atEnd) {
+            if (now - lastSavedAtMs < SAVE_INTERVAL_MS) return
+            if ((positionSec - lastSavedPosSec).let { it >= 0 && it < 1.0 } && lastSavedPosSec >= 0) return
+        }
         lastSavedAtMs = now
         lastSavedPosSec = positionSec
         viewModelScope.launch {
-            runCatching { client.call { client.api.saveWatchProgress(slug, lessonId, WatchIn(positionSec, durationSec)) } }
+            runCatching {
+                val res = client.call {
+                    client.api.saveWatchProgress(slug, lessonId, WatchIn(positionSec, durationSec, completed = atEnd))
+                }
+                if (res.completed == true && !_completed.value) {
+                    _completed.value = true
+                    val points = res.points ?: 0
+                    _message.value =
+                        if (points > 0) "درس تکمیل شد و $points امتیاز دریافت کردید." else "درس تکمیل شد."
+                    load() // lesson state (✓ و باز شدن درس بعدی) تازه شود
+                }
+            }
         }
     }
 
