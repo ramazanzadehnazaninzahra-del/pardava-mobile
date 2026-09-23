@@ -20,7 +20,9 @@ import okhttp3.Request
 sealed interface LessonUiState {
     data object Loading : LessonUiState
     data class Ready(val lesson: LessonContentResponse) : LessonUiState
-    data class Failure(val message: String) : LessonUiState
+
+    /** [action] mirrors the server envelope (enroll/login/purchase) so the UI can offer a fix. */
+    data class Failure(val message: String, val action: String? = null) : LessonUiState
 }
 
 class LessonViewModel(
@@ -83,8 +85,37 @@ class LessonViewModel(
                         }
                     }
                 }
+            } catch (e: ApiException) {
+                _state.value = LessonUiState.Failure(e.message, e.action)
             } catch (e: Exception) {
                 _state.value = LessonUiState.Failure(e.message ?: "error")
+            }
+        }
+    }
+
+    /**
+     * Free-course enrollment straight from the lesson gate (server answers
+     * action=purchase for paid courses — that message is surfaced verbatim).
+     * Guests are routed to the login screen.
+     */
+    fun enroll(signedIn: Boolean, onNeedLogin: () -> Unit) {
+        if (!signedIn) {
+            onNeedLogin()
+            return
+        }
+        if (_busy.value) return
+        _busy.value = true
+        viewModelScope.launch {
+            try {
+                val res = client.call { client.api.enroll(slug) }
+                _message.value = res.message ?: "ثبت‌نام انجام شد."
+                load()
+            } catch (e: ApiException) {
+                _message.value = e.message
+            } catch (e: Exception) {
+                _message.value = e.message ?: "خطا"
+            } finally {
+                _busy.value = false
             }
         }
     }

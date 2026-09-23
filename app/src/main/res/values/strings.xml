@@ -49,6 +49,7 @@
     <string name="course_title">Course</string>
     <string name="course_progress">Your progress</string>
     <string name="enroll_free">Enroll for free</string>
+    <string name="enroll_continue">Enroll and continue</string>
     <string name="purchase_request">Request purchase</string>
     <string name="purchase_pending">Your purchase request is pending approval</string>
     <string name="toman">Toman</string>
@@ -110,7 +111,7 @@
     <string name="font_large">Large</string>
     <string name="font_xlarge">Extra large</string>
     <string name="settings_about">About</string>
-    <string name="settings_about_app">%1$s — bilingual programming &amp; AI platform.</string>
+    <string name="settings_about_open">About Pardava on the website</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_site">pardava.ir</string>
     <string name="nav_home">Home</string>
@@ -135,6 +136,7 @@
     <string name="update_uptodate_body">You already have the latest version of the Pardava app.</string>
     <string name="google_no_browser">No browser found for Google sign-in.</string>
     <string name="google_sign_in_hint">Sign in on the web page; you will return to the app automatically.</string>
+    <string name="auth_success">Signed in successfully. Welcome!</string>
 
     <!-- video player -->
     <string name="player_play_pause">Play / pause</string>

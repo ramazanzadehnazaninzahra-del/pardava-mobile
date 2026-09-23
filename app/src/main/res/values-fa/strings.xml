@@ -49,6 +49,7 @@
     <string name="course_title">دوره</string>
     <string name="course_progress">پیشرفت شما در دوره</string>
     <string name="enroll_free">ثبت‌نام رایگان در دوره</string>
+    <string name="enroll_continue">ثبت‌نام در دوره و ادامه</string>
     <string name="purchase_request">درخواست خرید دوره</string>
     <string name="purchase_pending">درخواست خرید شما در انتظار تأیید است</string>
     <string name="toman">تومان</string>
@@ -110,7 +111,7 @@
     <string name="font_large">بزرگ</string>
     <string name="font_xlarge">خیلی بزرگ</string>
     <string name="settings_about">درباره</string>
-    <string name="settings_about_app">%1$s — پلتفرم دوبیتهٔ برنامه‌نویسی و هوش مصنوعی.</string>
+    <string name="settings_about_open">دربارهٔ پردآوا در وب‌سایت</string>
     <string name="settings_version">نسخهٔ %1$s</string>
     <string name="settings_about_site">pardava.ir</string>
     <string name="nav_home">خانه</string>
@@ -135,6 +136,7 @@
     <string name="update_uptodate_body">شما آخرین نسخهٔ اپلیکیشن پردآوا را دارید.</string>
     <string name="google_no_browser">مرورگری برای ورود با گوگل پیدا نشد.</string>
     <string name="google_sign_in_hint">در صفحهٔ سایت وارد شوید؛ خودکار به اپ برمی‌گردید.</string>
+    <string name="auth_success">ورود موفق بود. خوش آمدید!</string>
 
     <!-- ویدیو پلیر -->
     <string name="player_play_pause">پخش / توقف</string>

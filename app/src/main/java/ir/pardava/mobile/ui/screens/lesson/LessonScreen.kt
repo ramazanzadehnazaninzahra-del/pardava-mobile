@@ -85,7 +85,7 @@ fun LessonScreen(
     val busy by vm.busy.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val lang = app.currentLanguage()
-    val signedIn = app.session.isSignedIn
+    val signedIn by app.signedIn.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(slug, lessonId) { vm.load() }
@@ -115,7 +115,23 @@ fun LessonScreen(
     ) { padding ->
         when (val s = state) {
             is LessonUiState.Loading -> LoadingBox()
-            is LessonUiState.Failure -> ErrorState(message = s.message, onRetry = { vm.load() })
+            is LessonUiState.Failure -> when (s.action) {
+                "enroll" -> AccessGate(
+                    icon = { Icon(Icons.Filled.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp)) },
+                    message = s.message,
+                    busy = busy,
+                    ctaLabel = stringResource(R.string.enroll_continue),
+                    onCta = { vm.enroll(signedIn, onOpenLogin) },
+                )
+                "login" -> AccessGate(
+                    icon = { Icon(Icons.Filled.School, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp)) },
+                    message = s.message,
+                    busy = busy,
+                    ctaLabel = stringResource(R.string.sign_in_cta),
+                    onCta = onOpenLogin,
+                )
+                else -> ErrorState(message = s.message, onRetry = { vm.load() })
+            }
             is LessonUiState.Ready -> {
                 val lesson = s.lesson.lesson
                 if (lesson == null) {
@@ -139,6 +155,56 @@ fun LessonScreen(
                     onOpenLogin = onOpenLogin,
                     modifier = Modifier.padding(padding),
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Lesson access gate: shown when the server answers action=enroll / action=login.
+ * Offers the one-tap fix instead of a dead error state.
+ */
+@Composable
+private fun AccessGate(
+    icon: @Composable () -> Unit,
+    message: String,
+    busy: Boolean,
+    ctaLabel: String,
+    onCta: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                icon()
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(14.dp))
+                Button(
+                    onClick = onCta,
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(13.dp),
+                ) {
+                    if (busy) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text(ctaLabel)
+                    }
+                }
             }
         }
     }
@@ -204,7 +270,7 @@ private fun LessonContent(
             }
             if (lesson.state == LessonItemDto.STATE_PREVIEW) {
                 InfoChipSmall(stringResource(R.string.badge_preview), MaterialTheme.colorScheme.secondary)
-            } else if (lesson.state == LessonItemDto.STATE_COMPLETED) {
+            } else if (lesson.state == LessonItemDto.STATE_DONE) {
                 InfoChipSmall(stringResource(R.string.completed_lesson), MaterialTheme.colorScheme.tertiary)
             } else if (lesson.state == LessonItemDto.STATE_LOCKED) {
                 InfoChipSmall(stringResource(R.string.locked_lesson), MaterialTheme.colorScheme.outline)
@@ -229,7 +295,7 @@ private fun LessonContent(
         Spacer(Modifier.height(20.dp))
 
         // ---- actions ----
-        val completed = lesson.state == LessonItemDto.STATE_COMPLETED
+        val completed = lesson.state == LessonItemDto.STATE_DONE
         val preview = lesson.state == LessonItemDto.STATE_PREVIEW
         val locked = lesson.state == LessonItemDto.STATE_LOCKED
 

@@ -153,6 +153,9 @@ class ApiClient(
  */
 class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
 
+    /** Notified whenever the signed-in state flips — drives reactive UI updates. */
+    var onSessionChanged: ((Boolean) -> Unit)? = null
+
     @Volatile
     var token: String? = null
         private set
@@ -197,12 +200,14 @@ class SessionManager(private val store: TokenStore, scope: CoroutineScope) {
         store.save(newToken, newUser)
         token = newToken
         user = newUser
+        onSessionChanged?.invoke(true)
     }
 
     suspend fun clear() {
         store.clear()
         token = null
         user = null
+        onSessionChanged?.invoke(false)
     }
 
     /** Runtime site-root switching (settings screen) — memory + DataStore, instant. */
