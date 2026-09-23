@@ -27,8 +27,8 @@ android {
         applicationId = "ir.pardava.mobile"
         minSdk = 24
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.9.3"
+        versionCode = 12
+        versionName = "0.9.4"
         vectorDrawables { useSupportLibrary = true }
         // Base URL is the SITE ROOT; the app appends api/courses/… itself.
         // Override with: ./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.RemoveRedEye
@@ -186,6 +187,23 @@ fun CourseScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
                             )
+                            course?.instructor?.name?.takeIf { it.isNotBlank() }?.let { name ->
+                                Spacer(Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Filled.Person,
+                                        contentDescription = null,
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.9f),
+                                    )
+                                }
+                            }
                             Spacer(Modifier.height(8.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 course?.category_label?.let { InfoChip(it, container = Color(0xB3FFFFFF), content = Color.Black) }
@@ -355,6 +373,7 @@ fun CourseScreen(
                         }
 
                         extras.learning?.rating?.let { rating ->
+                            val canRate = extras.learning?.canRate == true || extras.learning?.myRating != null
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
                                 Spacer(Modifier.width(6.dp))
@@ -369,27 +388,35 @@ fun CourseScreen(
                                 )
                             }
                             Spacer(Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (canRate) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        stringResource(R.string.rating_yours),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    val myStars = extras.learning?.myRating?.stars ?: 0
+                                    (1..5).forEach { star ->
+                                        IconButton(onClick = {
+                                            app.logger.log("app_rate", label = slug, detail = mapOf("stars" to "$star"))
+                                            vm.rate(signedIn, star)
+                                        }) {
+                                            Icon(
+                                                Icons.Filled.Star,
+                                                contentDescription = Fmt.digits("$star", lang),
+                                                tint = if (star <= myStars) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
+                                                modifier = Modifier.size(26.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            } else if (extras.learning?.signedIn == true) {
                                 Text(
-                                    stringResource(R.string.rating_yours),
+                                    stringResource(R.string.rating_locked_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                Spacer(Modifier.width(6.dp))
-                                val myStars = extras.learning?.myRating?.stars ?: 0
-                                (1..5).forEach { star ->
-                                    IconButton(onClick = {
-                                        app.logger.log("app_rate", label = slug, detail = mapOf("stars" to "$star"))
-                                        vm.rate(signedIn, star)
-                                    }) {
-                                        Icon(
-                                            Icons.Filled.Star,
-                                            contentDescription = Fmt.digits("$star", lang),
-                                            tint = if (star <= myStars) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
-                                            modifier = Modifier.size(26.dp),
-                                        )
-                                    }
-                                }
                             }
                             Spacer(Modifier.height(12.dp))
                         }

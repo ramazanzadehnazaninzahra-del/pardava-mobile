@@ -172,4 +172,5 @@
     <string name="rating_summary">میانگین %1$s از ۵ · %2$s نفر</string>
     <string name="rating_none">هنوز امتیازی ثبت نشده است</string>
     <string name="rating_yours">امتیاز شما:</string>
+    <string name="rating_locked_hint">امتیازدهی پس از تماشای کامل دوره فعال می‌شود.</string>
 </resources>

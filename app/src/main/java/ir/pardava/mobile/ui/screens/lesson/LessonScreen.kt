@@ -315,7 +315,9 @@ private fun LessonContent(
                     )
                 }
             }
-        } else if (!completed && !preview) {
+        } else if (!completed && !preview && lesson.hasVideo != true) {
+            // Manual completion exists only for lessons without a video —
+            // video lessons auto-complete from watch time (server-side).
             Button(
                 onClick = onComplete,
                 enabled = !busy,

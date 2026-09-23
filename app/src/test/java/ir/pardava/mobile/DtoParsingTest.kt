@@ -175,6 +175,7 @@ class DtoParsingTest {
         val body = """
         {"ok":true,"course":{"slug":"cert-course","title":"X","price":500000},"lesson_count":3,
         "rating":{"avg":4.5,"count":2},"signed_in":true,"full_access":true,"completed_count":3,
+        "can_rate":true,
         "my_rating":{"stars":5,"review":"","updated_at":"2026-09-22"},
         "quiz":{"title":"آزمون","title_en":"","pass_percent":60,"questions":4,"best":75,"attempts":2},
         "certificate":{"available":true,"eligible":true,"issued":true,"serial":"PDV-CERT-ABC123",
@@ -186,8 +187,33 @@ class DtoParsingTest {
         assertEquals(4.5, parsed.rating?.avg!!, 0.01)
         assertEquals(2, parsed.rating?.count)
         assertEquals(75, parsed.quiz?.best)
+        assertTrue(parsed.canRate == true)
         assertTrue(parsed.certificate?.issued == true)
         assertTrue(parsed.certificate?.serial!!.startsWith("PDV-CERT-"))
+    }
+
+    @Test
+    fun `course detail parses instructor and rating gate`() {
+        val body = """
+        {"ok":true,"course":{"id":11,"slug":"inst-course","title":"دوره","summary":"","price":0,
+        "is_free":true,"lesson_count":2,"total_minutes":24,"instructor":{"name":"استاد تست","title":"مدرس پایتون","photo_url":"/uploads/instructors/x.png"}},
+        "lessons":[],"enrolled":true,"full_access":true,"completed_count":1}
+        """.trimIndent()
+        val parsed = json.decodeFromString(CourseDetailResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertEquals("استاد تست", parsed.course?.instructor?.name)
+        assertEquals("مدرس پایتون", parsed.course?.instructor?.title)
+        assertEquals("/uploads/instructors/x.png", parsed.course?.instructor?.photoUrl)
+    }
+
+    @Test
+    fun `course without instructor parses null`() {
+        val body = """
+        {"ok":true,"course":{"id":12,"slug":"no-inst","title":"دوره","summary":"","price":0,
+        "is_free":true,"lesson_count":1,"total_minutes":10,"instructor":null},"lessons":[]}
+        """.trimIndent()
+        val parsed = json.decodeFromString(CourseDetailResponse.serializer(), body)
+        assertNull(parsed.course?.instructor)
     }
 
     @Test
