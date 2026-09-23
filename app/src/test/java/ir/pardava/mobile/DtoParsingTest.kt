@@ -11,6 +11,7 @@ import ir.pardava.mobile.data.dto.LearningResponse
 import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.ProgressResponse
+import ir.pardava.mobile.data.dto.ProgressSaveResponse
 import ir.pardava.mobile.data.dto.QuizDetailResponse
 import ir.pardava.mobile.data.dto.QuizSubmitResponse
 import ir.pardava.mobile.data.dto.RateResponse
@@ -231,6 +232,24 @@ class DtoParsingTest {
         val body = """{"ok":true,"watch":{"position":123.5,"duration":600.0,"updated_at":"2026-09-22 20:00:00"}}"""
         val parsed = json.decodeFromString(ProgressResponse.serializer(), body)
         assertEquals(123.5, parsed.watch?.position!!, 0.01)
+    }
+
+    @Test
+    fun `watch progress save parses auto-completion payload`() {
+        // پاسخ جدید سرور: تکمیل خودکار در ۹۰٪ تماشا با امتیاز پرداخت‌شده
+        val body = """{"ok":true,"saved":true,"position":92.0,"completed":true,"points":10,"total_points":130}"""
+        val parsed = json.decodeFromString(ProgressSaveResponse.serializer(), body)
+        assertEquals(true, parsed.completed)
+        assertEquals(10, parsed.points)
+        assertEquals(130, parsed.totalPoints)
+    }
+
+    @Test
+    fun `watch progress save without completion stays backward compatible`() {
+        val body = """{"ok":true,"saved":true,"position":33.0}"""
+        val parsed = json.decodeFromString(ProgressSaveResponse.serializer(), body)
+        assertNull(parsed.completed)
+        assertNull(parsed.points)
     }
 }
 
