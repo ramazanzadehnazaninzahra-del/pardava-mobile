@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -65,6 +66,7 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onOpenCourse: (String) -> Unit = {},
     onOpenLeague: () -> Unit = {},
+    onOpenChat: () -> Unit = {},
 ) {
     val vm: ProfileViewModel = viewModel(factory = SimpleVmFactory(app.api) { ProfileViewModel(it) })
     val state by vm.state.collectAsStateWithLifecycle()
@@ -74,7 +76,7 @@ fun ProfileScreen(
     LaunchedEffect(signedIn) { vm.refresh(signedIn) }
 
     when (val s = state) {
-        is ProfileUiState.Guest -> GuestCard(onOpenLogin, onOpenSettings)
+        is ProfileUiState.Guest -> GuestCard(onOpenLogin, onOpenSettings, onOpenChat)
         is ProfileUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -154,7 +156,19 @@ fun ProfileScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.league_card))
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
+
+                // ---- support chat ----
+                OutlinedButton(
+                    onClick = onOpenChat,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Icon(Icons.Filled.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.chat_title))
+                }
+                Spacer(Modifier.height(6.dp))
 
                 // ---- continue learning ----
                 val enrolledCourses = s.enrolledCourses
@@ -251,7 +265,7 @@ private fun EnrollmentRow(title: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun GuestCard(onOpenLogin: () -> Unit, onOpenSettings: () -> Unit) {
+private fun GuestCard(onOpenLogin: () -> Unit, onOpenSettings: () -> Unit, onOpenChat: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -294,6 +308,16 @@ private fun GuestCard(onOpenLogin: () -> Unit, onOpenSettings: () -> Unit) {
             Text(stringResource(R.string.sign_in_cta))
         }
         Spacer(Modifier.height(10.dp))
+        OutlinedButton(
+            onClick = onOpenChat,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Icon(Icons.Filled.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.chat_title))
+        }
+        Spacer(Modifier.height(6.dp))
         OutlinedButton(
             onClick = onOpenSettings,
             modifier = Modifier.fillMaxWidth().height(50.dp),

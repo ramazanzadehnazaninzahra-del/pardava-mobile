@@ -59,6 +59,7 @@ fun MainScaffold(
     onOpenLeague: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLogin: () -> Unit,
+    onOpenChat: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -89,6 +90,7 @@ fun MainScaffold(
                 onOpenSettings = onOpenSettings,
                 onOpenCourse = onOpenCourse,
                 onOpenLeague = onOpenLeague,
+                onOpenChat = onOpenChat,
             )
         },
     )

@@ -27,7 +27,9 @@ import ir.pardava.mobile.data.dto.QuizSubmitResponse
 import ir.pardava.mobile.data.dto.RateIn
 import ir.pardava.mobile.data.dto.RateResponse
 import ir.pardava.mobile.data.dto.ServicesResponse
+import ir.pardava.mobile.data.dto.SendSupportIn
 import ir.pardava.mobile.data.dto.SimpleOkResponse
+import ir.pardava.mobile.data.dto.SupportMessagesResponse
 import ir.pardava.mobile.data.dto.TokenResponse
 import ir.pardava.mobile.data.dto.VersionResponse
 import ir.pardava.mobile.data.dto.WatchIn
@@ -162,4 +164,12 @@ interface PardavaApi {
 
     @POST("api/mobile/auth/cancel")
     suspend fun cancelAuth(@Body body: CancelAuthIn): SimpleOkResponse
+
+    /* support chat — login strictly required by the server (401 envelope otherwise) */
+
+    @GET("api/support/messages")
+    suspend fun supportMessages(): SupportMessagesResponse
+
+    @POST("api/support/messages")
+    suspend fun sendSupportMessage(@Body body: SendSupportIn): SupportMessagesResponse
 }

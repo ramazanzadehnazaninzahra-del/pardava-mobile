@@ -508,6 +508,7 @@ data class HomeResponse(
     override val code: Int? = null,
     override val error: String? = null,
     override val action: String? = null,
+    val banners: List<String> = emptyList(),
     val services: List<ServiceItemDto> = emptyList(),
     val courses: List<CourseCardDto> = emptyList(),
     val articles: List<MobileArticleDto> = emptyList(),
@@ -582,3 +583,25 @@ data class ExchangeCodeIn(val code: String)
 
 @Serializable
 data class CancelAuthIn(val nonce: String)
+
+/* ---------------- support chat (https://pardava.ir/api/support) ---------------- */
+
+@Serializable
+data class SupportMessageDto(
+    val id: Long? = null,
+    val mine: Boolean = false,
+    val body: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class SupportMessagesResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val messages: List<SupportMessageDto> = emptyList(),
+) : Envelope
+
+@Serializable
+data class SendSupportIn(val body: String)

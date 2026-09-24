@@ -68,7 +68,6 @@ fun SettingsScreen(app: PardavaApp, onBack: () -> Unit, onOpenSite: () -> Unit) 
     var checkingBusy by remember { mutableStateOf(false) }
     var updateFound by remember { mutableStateOf<ir.pardava.mobile.data.dto.LatestVersionDto?>(null) }
     var upToDate by remember { mutableStateOf(false) }
-    var downloading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -236,34 +235,12 @@ fun SettingsScreen(app: PardavaApp, onBack: () -> Unit, onOpenSite: () -> Unit) 
             Spacer(Modifier.height(24.dp))
         }
 
-        // ---- update result dialogs ----
+        // ---- update result dialogs (in-app download + auto install) ----
         updateFound?.let { latest ->
-            AlertDialog(
-                onDismissRequest = { if (!downloading) updateFound = null },
-                title = { Text(stringResource(R.string.update_title, latest.versionName ?: "")) },
-                text = {
-                    Text(
-                        latest.whatsNew?.ifBlank { null }
-                            ?: stringResource(R.string.update_body),
-                    )
-                },
-                confirmButton = {
-                    TextButton(
-                        enabled = !downloading,
-                        onClick = {
-                            downloading = true
-                            ir.pardava.mobile.core.UpdateManager.download(context, latest.apkUrl ?: return@TextButton)
-                            scope.launch(Dispatchers.Main) {
-                                snackbar.showSnackbar(app.getString(R.string.update_downloading))
-                            }
-                            downloading = false
-                            updateFound = null
-                        },
-                    ) { Text(stringResource(R.string.update_download)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { updateFound = null }) { Text(stringResource(R.string.update_later)) }
-                },
+            ir.pardava.mobile.ui.components.UpdateDialog(
+                app = app,
+                latest = latest,
+                onDismiss = { updateFound = null },
             )
         }
         if (upToDate && updateFound == null) {

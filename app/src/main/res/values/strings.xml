@@ -132,6 +132,14 @@
     <string name="update_download">Download &amp; install</string>
     <string name="update_downloading">Download started; confirm the install from the notification when done.</string>
     <string name="update_later">Later</string>
+    <string name="update_install">Download &amp; install</string>
+    <string name="update_failed">The update could not be downloaded. Check your connection.</string>
+    <string name="chat_title">Support chat</string>
+    <string name="chat_input_hint">Your message…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_login_required">Sign in to chat with the Pardava team.</string>
+    <string name="chat_empty">Ask us anything — we usually reply quickly.</string>
+    <string name="chat_failed">Connection failed; will retry…</string>
     <string name="update_uptodate_title">You are up to date</string>
     <string name="update_uptodate_body">You already have the latest version of the Pardava app.</string>
     <string name="google_no_browser">No browser found for Google sign-in.</string>
