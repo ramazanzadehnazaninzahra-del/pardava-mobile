@@ -132,6 +132,14 @@
     <string name="update_download">دانلود و نصب</string>
     <string name="update_downloading">دانلود آغاز شد؛ پس از اتمام از اعلان، نصب را تأیید کنید.</string>
     <string name="update_later">بعداً</string>
+    <string name="update_install">دانلود و نصب</string>
+    <string name="update_failed">به‌روزرسانی دانلود نشد. اتصال اینترنت را بررسی کنید.</string>
+    <string name="chat_title">گفتگو با پشتیبانی</string>
+    <string name="chat_input_hint">پیام شما…</string>
+    <string name="chat_send">ارسال</string>
+    <string name="chat_login_required">برای گفتگو با تیم پردآوا وارد حساب شوید.</string>
+    <string name="chat_empty">هر سؤالی داری بپرس؛ سریع پاسخ می‌دهیم.</string>
+    <string name="chat_failed">ارتباط برقرار نشد؛ دوباره تلاش می‌کنیم…</string>
     <string name="update_uptodate_title">به‌روز هستید</string>
     <string name="update_uptodate_body">شما آخرین نسخهٔ اپلیکیشن پردآوا را دارید.</string>
     <string name="google_no_browser">مرورگری برای ورود با گوگل پیدا نشد.</string>

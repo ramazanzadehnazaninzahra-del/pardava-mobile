@@ -2,7 +2,6 @@ package ir.pardava.mobile.ui.nav
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,7 +29,9 @@ import ir.pardava.mobile.R
 import ir.pardava.mobile.core.UpdateManager
 import ir.pardava.mobile.data.dto.ExchangeCodeIn
 import ir.pardava.mobile.ui.components.MainScaffold
+import ir.pardava.mobile.ui.components.UpdateDialog
 import ir.pardava.mobile.ui.screens.articles.ArticleReaderScreen
+import ir.pardava.mobile.ui.screens.chat.ChatScreen
 import ir.pardava.mobile.ui.screens.course.CourseScreen
 import ir.pardava.mobile.ui.screens.leaderboard.LeaderboardScreen
 import ir.pardava.mobile.ui.screens.lesson.LessonScreen
@@ -50,6 +51,7 @@ object Routes {
     const val ARTICLE = "article/{key}"
     const val QUIZ = "quiz/{slug}"
     const val CERT = "cert/{slug}"
+    const val CHAT = "chat"
 
     fun course(slug: String) = "course/$slug"
     fun lesson(slug: String, lessonId: Long) = "lesson/$slug/$lessonId"
@@ -71,8 +73,6 @@ fun PardavaNav(app: PardavaApp) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var startReady by remember { mutableStateOf(false) }
     var updateAvailable by remember { mutableStateOf<ir.pardava.mobile.data.dto.LatestVersionDto?>(null) }
-    var updating by remember { mutableStateOf(false) }
-    val context = androidx.compose.ui.platform.LocalContext.current
     val settings by app.settings.collectAsStateWithLifecycle()
     val darkTheme = when (settings.themeMode) {
         ir.pardava.mobile.core.ThemeMode.LIGHT -> false
@@ -129,29 +129,12 @@ fun PardavaNav(app: PardavaApp) {
         return
     }
 
-    // ---- in-app update dialog ----
+    // ---- in-app update dialog: downloads INSIDE the app, auto-opens installer ----
     updateAvailable?.let { latest ->
-        AlertDialog(
-            onDismissRequest = { if (!updating) updateAvailable = null },
-            title = { Text(stringResource(R.string.update_title, latest.versionName ?: "")) },
-            text = { Text(latest.whatsNew?.ifBlank { stringResource(R.string.update_body) } ?: stringResource(R.string.update_body)) },
-            confirmButton = {
-                TextButton(
-                    enabled = !updating,
-                    onClick = {
-                        updating = true
-                        UpdateManager.download(context, latest.apkUrl ?: return@TextButton)
-                        scope.launch {
-                            snackbar.showSnackbar(app.getString(R.string.update_downloading))
-                        }
-                        updating = false
-                        updateAvailable = null
-                    },
-                ) { Text(stringResource(R.string.update_download)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { updateAvailable = null }) { Text(stringResource(R.string.update_later)) }
-            },
+        UpdateDialog(
+            app = app,
+            latest = latest,
+            onDismiss = { updateAvailable = null },
         )
     }
 
@@ -176,6 +159,7 @@ fun PardavaNav(app: PardavaApp) {
                     onOpenLeague = { nav.navigate(Routes.LEAGUE) },
                     onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                     onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                    onOpenChat = { nav.navigate(Routes.CHAT) },
                 )
             }
 
@@ -196,6 +180,14 @@ fun PardavaNav(app: PardavaApp) {
 
             composable(Routes.LEAGUE) {
                 LeaderboardScreen(app = app, onBack = { nav.popBackStack() })
+            }
+
+            composable(Routes.CHAT) {
+                ChatScreen(
+                    app = app,
+                    onBack = { nav.popBackStack() },
+                    onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                )
             }
 
             composable(

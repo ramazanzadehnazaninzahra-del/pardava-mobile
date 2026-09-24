@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +56,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +69,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -105,6 +110,13 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
+            // ---- site banners (same hero slider the admin panel manages) ----
+            if (s.data.banners.isNotEmpty()) {
+                item {
+                    BannerCarousel(urls = s.data.banners.mapNotNull { app.api.absoluteUrl(it) })
+                }
+            }
+
             // ---- fresh courses ----
             if (s.courses.isNotEmpty()) {
                 item {
@@ -247,6 +259,71 @@ fun HomeScreen(
                             ) { onOpenArticle(article) }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Site banners: auto-advancing pager with the exact images the website's
+ * homepage slider shows (managed from the admin panel hero section).
+ */
+@Composable
+private fun BannerCarousel(urls: List<String>) {
+    if (urls.isEmpty()) return
+    val pagerState = rememberPagerState(pageCount = { urls.size })
+    LaunchedEffect(urls.size) {
+        while (isActive) {
+            delay(4_500)
+            if (urls.size > 1) {
+                val next = (pagerState.currentPage + 1) % urls.size
+                runCatching { pagerState.animateScrollToPage(next) }
+            }
+        }
+    }
+    Column(Modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(18.dp)),
+        ) { page ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 6f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            ) {
+                AsyncImage(
+                    model = urls[page],
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        if (urls.size > 1) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                repeat(urls.size) { index ->
+                    Box(
+                        Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (index == pagerState.currentPage) 7.dp else 5.dp)
+                            .background(
+                                if (index == pagerState.currentPage) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                },
+                                CircleShape,
+                            ),
+                    )
                 }
             }
         }
