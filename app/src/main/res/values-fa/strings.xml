@@ -61,6 +61,8 @@
     <string name="preview_notice">این جلسه پیش‌نمایش رایگان است. برای دیدن همهٔ جلسه‌ها و ثبت پیشرفت، وارد حساب شوید.</string>
     <string name="sign_in_cta">ورود / ثبت‌نام</string>
     <string name="lesson_file">دانلود فایل جلسه</string>
+    <string name="attachments_title">پیوست‌ها</string>
+    <string name="preview_notice_signed_in">وارد حساب شده‌اید؛ برای باز شدن همهٔ جلسه‌ها و ثبت پیشرفت، در دوره ثبت‌نام کنید.</string>
     <string name="prev_lesson">جلسهٔ قبل</string>
     <string name="next_lesson">جلسهٔ بعد</string>
 
