@@ -33,9 +33,13 @@ import ir.pardava.mobile.data.dto.SupportMessagesResponse
 import ir.pardava.mobile.data.dto.TokenResponse
 import ir.pardava.mobile.data.dto.VersionResponse
 import ir.pardava.mobile.data.dto.WatchIn
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -172,4 +176,13 @@ interface PardavaApi {
 
     @POST("api/support/messages")
     suspend fun sendSupportMessage(@Body body: SendSupportIn): SupportMessagesResponse
+
+    /** Image/audio attachment (multipart). At least one of body/file must be present. */
+    @Multipart
+    @POST("api/support/messages")
+    suspend fun sendSupportMessageWithFile(
+        @Part file: MultipartBody.Part,
+        @Part("body") body: RequestBody?,
+        @Part("duration") duration: RequestBody?,
+    ): SupportMessagesResponse
 }

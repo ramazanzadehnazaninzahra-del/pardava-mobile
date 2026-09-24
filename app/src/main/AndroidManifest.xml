@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Support chat voice notes: in-app recording. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- In-app updates: let the user allow installs from this app once (Android 8+). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

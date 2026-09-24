@@ -183,4 +183,14 @@
     <string name="rating_none">هنوز امتیازی ثبت نشده است</string>
     <string name="rating_yours">امتیاز شما:</string>
     <string name="rating_locked_hint">امتیازدهی پس از تماشای کامل دوره فعال می‌شود.</string>
+    <string name="chat_subtitle">معمولاً سریع پاسخ می‌دهیم</string>
+    <string name="chat_attach_photo">عکس</string>
+    <string name="chat_record">صدا</string>
+    <string name="chat_cancel">لغو</string>
+    <string name="chat_voice">پیام صوتی</string>
+    <string name="chat_ready_photo">عکس آمادهٔ ارسال</string>
+    <string name="chat_record_failed">ضبط صدا انجام نشد</string>
+    <string name="chat_image_failed">خواندن عکس ممکن نشد</string>
+    <string name="chat_image_too_large">حجم عکس باید کمتر از ۵ مگابایت باشد</string>
+    <string name="chat_audio_too_large">حجم صدا باید کمتر از ۱۰ مگابایت باشد</string>
 </resources>
