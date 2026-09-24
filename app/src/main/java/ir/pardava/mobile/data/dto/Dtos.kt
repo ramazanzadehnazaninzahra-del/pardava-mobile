@@ -214,7 +214,21 @@ data class LessonContentDto(
     @SerialName("has_video") val hasVideo: Boolean? = null,
     @SerialName("file_name") val fileName: String? = null,
     val file: LessonFileDto? = null,
+    val attachments: List<LessonAttachmentDto> = emptyList(),
 )
+
+/** Multi-attachment metadata (gated URL; images show inline, files download). */
+@Serializable
+data class LessonAttachmentDto(
+    val id: Long? = null,
+    val title: String? = null,
+    val mime: String? = null,
+    val size: Long? = null,
+    @SerialName("is_image") val isImage: Boolean? = null,
+    val url: String? = null,
+) {
+    val isImageAtt: Boolean get() = isImage == true || (mime ?: "").startsWith("image/")
+}
 
 /** Attachment metadata (url may be empty when the master stays on storage). */
 @Serializable

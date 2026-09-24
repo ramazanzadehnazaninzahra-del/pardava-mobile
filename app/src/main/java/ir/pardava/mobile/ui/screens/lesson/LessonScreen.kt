@@ -1,6 +1,7 @@
 package ir.pardava.mobile.ui.screens.lesson
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.School
@@ -42,17 +45,28 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
+import ir.pardava.mobile.core.BodySegment
 import ir.pardava.mobile.core.Fmt
+import ir.pardava.mobile.core.LessonBody
+import ir.pardava.mobile.data.dto.LessonAttachmentDto
 import ir.pardava.mobile.data.dto.LessonContentDto
 import ir.pardava.mobile.data.dto.LessonItemDto
 import ir.pardava.mobile.ui.components.ErrorState
@@ -142,6 +156,7 @@ fun LessonScreen(
                     app = app,
                     lesson = lesson,
                     lang = lang,
+                    signedIn = signedIn,
                     busy = busy,
                     resumeSec = vm.resumeSec.collectAsStateWithLifecycle().value,
                     videoUrl = vm.videoUrl(),
@@ -150,6 +165,8 @@ fun LessonScreen(
                     onReload = { vm.load() },
                     onComplete = { vm.complete(signedIn, onNeedLogin = onOpenLogin) },
                     onDownload = { vm.downloadFile(app) },
+                    onDownloadAttachment = { att -> vm.downloadAttachment(app, att) },
+                    onEnroll = { vm.enroll(signedIn, onOpenLogin) },
                     onPrev = { lesson.prevId?.let { id -> vm.openLesson(id) } },
                     onNext = { lesson.nextId?.let { id -> vm.openLesson(id) } },
                     onOpenLogin = onOpenLogin,
@@ -215,6 +232,7 @@ private fun LessonContent(
     app: PardavaApp,
     lesson: LessonContentDto,
     lang: String,
+    signedIn: Boolean,
     busy: Boolean,
     resumeSec: Double?,
     videoUrl: String?,
@@ -223,6 +241,8 @@ private fun LessonContent(
     onReload: () -> Unit,
     onComplete: () -> Unit,
     onDownload: () -> Unit,
+    onDownloadAttachment: (LessonAttachmentDto) -> Unit,
+    onEnroll: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onOpenLogin: () -> Unit,
@@ -278,17 +298,34 @@ private fun LessonContent(
         }
         Spacer(Modifier.height(16.dp))
 
-        // ---- body text: server sends plain text with blank-line paragraphs ----
+        // ---- body: plain text with optional ![alt](url) in-text images ----
         val body = lesson.description ?: ""
-        body.split("\n\n").forEach { paragraph ->
-            val text = paragraph.trim()
-            if (text.isNotEmpty()) {
-                Text(
-                    text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(12.dp))
+        LessonBody.parse(body).forEach { segment ->
+            when (segment) {
+                is BodySegment.Text -> {
+                    segment.value.split("\n\n").forEach { paragraph ->
+                        val text = paragraph.trim()
+                        if (text.isNotEmpty()) {
+                            Text(
+                                text,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                }
+                is BodySegment.Image -> {
+                    AsyncImage(
+                        model = app.api.absoluteUrl(segment.url),
+                        contentDescription = segment.alt.ifBlank { null },
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp)),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
             }
         }
 
@@ -360,19 +397,28 @@ private fun LessonContent(
             ) {
                 Column(Modifier.padding(14.dp)) {
                     Text(
-                        stringResource(R.string.preview_notice),
+                        stringResource(
+                            if (signedIn) R.string.preview_notice_signed_in else R.string.preview_notice
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(10.dp))
                     Button(
-                        onClick = onOpenLogin, // enroll happens on the course page after signing in
+                        // Signed-in users enroll in place (server-side action);
+                        // only guests are routed to the login screen.
+                        onClick = onEnroll,
+                        enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(Icons.Filled.School, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.sign_in_cta))
+                        Text(
+                            stringResource(
+                                if (signedIn) R.string.enroll_continue else R.string.sign_in_cta
+                            )
+                        )
                     }
                 }
             }
@@ -391,6 +437,52 @@ private fun LessonContent(
                 Spacer(Modifier.width(8.dp))
                 Text(lesson.fileName ?: stringResource(R.string.lesson_file))
             }
+        }
+
+        // ---- multi attachments: images show inline, files download ----
+        val context = LocalContext.current
+        var viewerAtt by remember { mutableStateOf<LessonAttachmentDto?>(null) }
+        if (lesson.attachments.isNotEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Text(
+                stringResource(R.string.attachments_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            lesson.attachments.forEach { att ->
+                val absUrl = app.api.absoluteUrl(att.url)
+                if (att.isImageAtt && absUrl != null) {
+                    val model = ImageRequest.Builder(context)
+                        .data(absUrl)
+                        .addHeader("Authorization", "Bearer ${app.session.token ?: ""}")
+                        .build()
+                    AsyncImage(
+                        model = model,
+                        contentDescription = att.title,
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { viewerAtt = att },
+                    )
+                } else {
+                    OutlinedButton(
+                        onClick = { onDownloadAttachment(att) },
+                        enabled = !busy,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(att.title ?: stringResource(R.string.lesson_file), maxLines = 1)
+                    }
+                }
+            }
+        }
+        viewerAtt?.let { att ->
+            AttachmentViewer(app = app, attachment = att, onDismiss = { viewerAtt = null })
         }
 
         Spacer(Modifier.height(24.dp))
@@ -438,5 +530,48 @@ private fun InfoChipSmall(text: String, tint: androidx.compose.ui.graphics.Color
             .padding(horizontal = 10.dp, vertical = 3.dp),
     ) {
         Text(text, style = MaterialTheme.typography.labelSmall, color = tint, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Full-screen attachment image viewer (gated URL → loaded with the Bearer token). */
+@Composable
+private fun AttachmentViewer(
+    app: PardavaApp,
+    attachment: LessonAttachmentDto,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.92f))
+                .clickable(onClick = onDismiss),
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(app.api.absoluteUrl(attachment.url))
+                    .addHeader("Authorization", "Bearer ${app.session.token ?: ""}")
+                    .build(),
+                contentDescription = attachment.title,
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .clickable(onClick = { /* keep open inside the image */ }),
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.back),
+                    tint = androidx.compose.ui.graphics.Color.White,
+                )
+            }
+        }
     }
 }

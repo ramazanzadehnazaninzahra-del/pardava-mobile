@@ -61,6 +61,8 @@
     <string name="preview_notice">This is a free preview. Sign in to access all lessons and track progress.</string>
     <string name="sign_in_cta">Sign in</string>
     <string name="lesson_file">Download lesson file</string>
+    <string name="attachments_title">Attachments</string>
+    <string name="preview_notice_signed_in">You are signed in — enroll to unlock all lessons and track your progress.</string>
     <string name="prev_lesson">Previous</string>
     <string name="next_lesson">Next</string>
 

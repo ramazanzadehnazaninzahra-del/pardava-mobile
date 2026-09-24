@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ir.pardava.mobile.core.ApiClient
 import ir.pardava.mobile.data.dto.ApiException
+import ir.pardava.mobile.data.dto.LessonAttachmentDto
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.WatchIn
 import kotlinx.coroutines.Dispatchers
@@ -184,17 +185,48 @@ class LessonViewModel(
     }
 
     /**
-     * Streams the lesson attachment to the public Downloads folder via
-     * MediaStore (no storage permission needed on API 29+; direct file on older).
+     * Streams the legacy single lesson attachment to the public Downloads
+     * folder via MediaStore. Prefers the server-provided absolute URL
+     * (courses.course_lesson_file) over a locally-built /api path — the API
+     * prefix has no file route, so a guessed URL would 404.
      */
     fun downloadFile(context: Context) {
+        val ready = _state.value as? LessonUiState.Ready
+        val url = ready?.lesson?.lesson?.file?.url
+            ?: client.absoluteUrl("courses/$slug/lessons/$lessonId/file")
+        if (url == null) {
+            _message.value = "فایلی برای این جلسه موجود نیست."
+            return
+        }
+        downloadToDownloads(context, url) {
+            "فایلی برای این جلسه موجود نیست."
+        }
+    }
+
+    /** Downloads a multi-attachment file (gated URL) into the Downloads folder. */
+    fun downloadAttachment(context: Context, attachment: LessonAttachmentDto) {
+        if (_busy.value) return
+        val url = client.absoluteUrl(attachment.url)
+        if (url == null) {
+            _message.value = "آدرس پیوست نامعتبر است."
+            return
+        }
+        downloadToDownloads(context, url) {
+            "دانلود پیوست ناموفق بود."
+        }
+    }
+
+    private fun downloadToDownloads(
+        context: Context,
+        url: String,
+        onFailure: () -> String,
+    ) {
         if (_busy.value) return
         _busy.value = true
         viewModelScope.launch {
             try {
-                val url = client.absoluteUrl("api/courses/$slug/lessons/$lessonId/file")!!
                 val saved = withContext(Dispatchers.IO) { saveToDownloads(context, url) }
-                _message.value = if (saved) "فایل در پوشهٔ Downloads ذخیره شد." else "فایلی برای این جلسه موجود نیست."
+                _message.value = if (saved) "فایل در پوشهٔ Downloads ذخیره شد." else onFailure()
             } catch (e: ApiException) {
                 _message.value = e.message
             } catch (e: Exception) {
