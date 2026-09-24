@@ -601,11 +601,21 @@ data class CancelAuthIn(val nonce: String)
 /* ---------------- support chat (https://pardava.ir/api/support) ---------------- */
 
 @Serializable
+data class SupportAttachmentDto(
+    val type: String = "image", // image | audio
+    val name: String? = null,
+    val size: Long? = null,
+    val duration: Int? = null,
+    val url: String? = null,
+)
+
+@Serializable
 data class SupportMessageDto(
     val id: Long? = null,
     val mine: Boolean = false,
     val body: String = "",
     @SerialName("created_at") val createdAt: String? = null,
+    val attachment: SupportAttachmentDto? = null,
 )
 
 @Serializable

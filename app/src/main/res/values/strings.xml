@@ -183,4 +183,14 @@
     <string name="rating_none">No ratings yet</string>
     <string name="rating_yours">Your rating:</string>
     <string name="rating_locked_hint">Rating unlocks after you finish the whole course.</string>
+    <string name="chat_subtitle">We usually reply fast</string>
+    <string name="chat_attach_photo">Photo</string>
+    <string name="chat_record">Voice</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_voice">Voice message</string>
+    <string name="chat_ready_photo">Photo ready</string>
+    <string name="chat_record_failed">Recording failed</string>
+    <string name="chat_image_failed">Could not read the image</string>
+    <string name="chat_image_too_large">Image must be under 5 MB</string>
+    <string name="chat_audio_too_large">Audio must be under 10 MB</string>
 </resources>
