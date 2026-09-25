@@ -1,115 +1,188 @@
 package ir.pardava.mobile.data
 
-import ir.pardava.mobile.data.dto.AttemptOut
-import ir.pardava.mobile.data.dto.AttemptQuestionsOut
-import ir.pardava.mobile.data.dto.CourseBrief
-import ir.pardava.mobile.data.dto.CourseDetail
+import ir.pardava.mobile.data.dto.AppLogBatchIn
+import ir.pardava.mobile.data.dto.ArticleDetailResponse
+import ir.pardava.mobile.data.dto.ArticlesResponse
+import ir.pardava.mobile.data.dto.CancelAuthIn
+import ir.pardava.mobile.data.dto.CompleteResponse
+import ir.pardava.mobile.data.dto.CourseDetailResponse
+import ir.pardava.mobile.data.dto.CoursesListResponse
+import ir.pardava.mobile.data.dto.ExchangeCodeIn
+import ir.pardava.mobile.data.dto.ExchangeResponse
 import ir.pardava.mobile.data.dto.GoogleLoginIn
-import ir.pardava.mobile.data.dto.LeaderboardOut
-import ir.pardava.mobile.data.dto.LessonDetail
-import ir.pardava.mobile.data.dto.LogoutIn
+import ir.pardava.mobile.data.dto.HomeResponse
+import ir.pardava.mobile.data.dto.LeagueResponse
+import ir.pardava.mobile.data.dto.LearningResponse
+import ir.pardava.mobile.data.dto.LessonContentResponse
+import ir.pardava.mobile.data.dto.LoginIn
+import ir.pardava.mobile.data.dto.MeResponse
 import ir.pardava.mobile.data.dto.OtpRequestIn
-import ir.pardava.mobile.data.dto.OtpRequestOut
+import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.OtpVerifyIn
-import ir.pardava.mobile.data.dto.ProgressIn
-import ir.pardava.mobile.data.dto.ProgressOut
-import ir.pardava.mobile.data.dto.RefreshIn
-import ir.pardava.mobile.data.dto.SubtitleUrlOut
-import ir.pardava.mobile.data.dto.SubmitIn
-import ir.pardava.mobile.data.dto.SubmitResultOut
-import ir.pardava.mobile.data.dto.TokenOut
-import ir.pardava.mobile.data.dto.UserOut
-import ir.pardava.mobile.data.dto.UserStatsOut
-import ir.pardava.mobile.data.dto.VideoUrlOut
-import kotlinx.serialization.Serializable
+import ir.pardava.mobile.data.dto.ProgressResponse
+import ir.pardava.mobile.data.dto.ProgressSaveResponse
+import ir.pardava.mobile.data.dto.QuizDetailResponse
+import ir.pardava.mobile.data.dto.QuizSubmitIn
+import ir.pardava.mobile.data.dto.QuizSubmitResponse
+import ir.pardava.mobile.data.dto.RateIn
+import ir.pardava.mobile.data.dto.RateResponse
+import ir.pardava.mobile.data.dto.ServicesResponse
+import ir.pardava.mobile.data.dto.SendSupportIn
+import ir.pardava.mobile.data.dto.SimpleOkResponse
+import ir.pardava.mobile.data.dto.SupportMessagesResponse
+import ir.pardava.mobile.data.dto.TokenResponse
+import ir.pardava.mobile.data.dto.VersionResponse
+import ir.pardava.mobile.data.dto.WatchIn
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Header
-import retrofit2.http.PATCH
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+/**
+ * Pardava Courses API (v1.1.0) — base URL is the SITE ROOT (e.g. https://pardava.ir/)
+ * and every path below is prefixed with api/courses/…
+ *
+ * Transport quirk: the server always answers HTTP 200; business failures arrive
+ * inside the envelope (ok=false + code + error + action) and are converted to
+ * [ir.pardava.mobile.data.dto.ApiException] via requireOk().
+ */
 interface PardavaApi {
 
-    /* ---- auth ---- */
+    /* ---- auth (token = single session token `pdv_…`, no refresh) ---- */
 
-    @POST("api/v1/auth/otp/request")
-    suspend fun otpRequest(@Body body: OtpRequestIn): OtpRequestOut
+    @POST("api/courses/auth/login")
+    suspend fun login(@Body body: LoginIn): TokenResponse
 
-    @POST("api/v1/auth/otp/verify")
-    suspend fun otpVerify(@Body body: OtpVerifyIn): TokenOut
+    @POST("api/courses/auth/otp/request")
+    suspend fun otpRequest(@Body body: OtpRequestIn): OtpRequestResponse
 
-    @POST("api/v1/auth/google")
-    suspend fun googleLogin(@Body body: GoogleLoginIn): TokenOut
+    @POST("api/courses/auth/otp/verify")
+    suspend fun otpVerify(@Body body: OtpVerifyIn): TokenResponse
 
-    @POST("api/v1/auth/refresh")
-    suspend fun refresh(@Body body: RefreshIn): TokenOut
+    @POST("api/courses/auth/google")
+    suspend fun googleLogin(@Body body: GoogleLoginIn): TokenResponse
 
-    @POST("api/v1/auth/logout")
-    suspend fun logout(@Body body: LogoutIn)
+    @GET("api/courses/auth/me")
+    suspend fun me(): MeResponse
 
-    @GET("api/v1/auth/me")
-    suspend fun me(): UserOut
+    @POST("api/courses/auth/logout")
+    suspend fun logout(): SimpleOkResponse
 
-    /* ---- users ---- */
+    /* ---- catalog (public browsing — no login required) ---- */
 
-    @PATCH("api/v1/users/me")
-    suspend fun updateMe(@Body body: UpdateProfileIn): UserOut
+    @GET("api/courses")
+    suspend fun courses(): CoursesListResponse
 
-    @GET("api/v1/users/me/progress")
-    suspend fun myProgress(): List<ProgressOut>
+    @GET("api/courses/league")
+    suspend fun league(@Query("course") course: String? = null): LeagueResponse
 
-    /* ---- catalog ---- */
+    @GET("api/courses/{slug}")
+    suspend fun course(@Path("slug") slug: String): CourseDetailResponse
 
-    @GET("api/v1/courses")
-    suspend fun courses(@Query("lang") lang: String? = null): List<CourseBrief>
+    /* ---- learning (login required; lesson addressed by numeric id) ---- */
 
-    @GET("api/v1/courses/{slug}")
-    suspend fun course(@Path("slug") slug: String, @Query("lang") lang: String? = null): CourseDetail
+    @POST("api/courses/{slug}/enroll")
+    suspend fun enroll(@Path("slug") slug: String): SimpleOkResponse
 
-    @GET("api/v1/courses/{slug}/lessons/{lessonSlug}")
+    @POST("api/courses/{slug}/purchase")
+    suspend fun purchase(@Path("slug") slug: String): SimpleOkResponse
+
+    @GET("api/courses/{slug}/lessons/{lessonId}")
     suspend fun lesson(
         @Path("slug") slug: String,
-        @Path("lessonSlug") lessonSlug: String,
-        @Query("lang") lang: String? = null,
-    ): LessonDetail
+        @Path("lessonId") lessonId: Long,
+    ): LessonContentResponse
 
-    @POST("api/v1/lessons/{lessonId}/progress")
-    suspend fun reportProgress(@Path("lessonId") lessonId: Long, @Body body: ProgressIn): Map<String, kotlinx.serialization.json.JsonElement>
+    @POST("api/courses/{slug}/lessons/{lessonId}/complete")
+    suspend fun complete(
+        @Path("slug") slug: String,
+        @Path("lessonId") lessonId: Long,
+    ): CompleteResponse
 
-    @GET("api/v1/videos/{videoId}/url")
-    suspend fun videoUrl(@Path("videoId") videoId: Long): VideoUrlOut
+    /* ---- learning extras (watch progress, quiz, rating, certificate) ---- */
 
-    @GET("api/v1/subtitles/{subtitleId}/url")
-    suspend fun subtitleUrl(@Path("subtitleId") subtitleId: Long): SubtitleUrlOut
+    @GET("api/courses/{slug}/learning")
+    suspend fun learning(@Path("slug") slug: String): LearningResponse
 
-    /* ---- quiz engine ---- */
+    @GET("api/courses/{slug}/lessons/{lessonId}/progress")
+    suspend fun watchProgress(
+        @Path("slug") slug: String,
+        @Path("lessonId") lessonId: Long,
+    ): ProgressResponse
 
-    @POST("api/v1/quizzes/{quizId}/attempts")
-    suspend fun startAttempt(@Path("quizId") quizId: Long): AttemptOut
+    @POST("api/courses/{slug}/lessons/{lessonId}/progress")
+    suspend fun saveWatchProgress(
+        @Path("slug") slug: String,
+        @Path("lessonId") lessonId: Long,
+        @Body body: WatchIn,
+    ): ProgressSaveResponse
 
-    @GET("api/v1/quizzes/attempts/{attemptId}")
-    suspend fun attemptQuestions(@Path("attemptId") attemptId: Long): AttemptQuestionsOut
+    @GET("api/courses/{slug}/quiz")
+    suspend fun quiz(@Path("slug") slug: String): QuizDetailResponse
 
-    @POST("api/v1/quizzes/attempts/{attemptId}/submit")
-    suspend fun submitAttempt(@Path("attemptId") attemptId: Long, @Body body: SubmitIn): SubmitResultOut
+    @POST("api/courses/{slug}/quiz")
+    suspend fun submitQuiz(
+        @Path("slug") slug: String,
+        @Body body: QuizSubmitIn,
+    ): QuizSubmitResponse
 
-    /* ---- gamification ---- */
+    @POST("api/courses/{slug}/rate")
+    suspend fun rate(
+        @Path("slug") slug: String,
+        @Body body: RateIn,
+    ): RateResponse
 
-    @GET("api/v1/leaderboard")
-    suspend fun leaderboard(@Query("scope") scope: String = "weekly"): LeaderboardOut
+    /* ---- android install/usage logging (fire-and-forget) ---- */
 
-    @GET("api/v1/users/me/stats")
-    suspend fun myStats(): UserStatsOut
+    @POST("api/mobile/log")
+    suspend fun logEvents(@Body body: AppLogBatchIn): SimpleOkResponse
 
-    @GET("api/v1/users/me/achievements")
-    suspend fun myAchievements(): List<ir.pardava.mobile.data.dto.AchievementOut>
+    /* ---- mobile service (https://pardava.ir/api/mobile) — version sync,
+     *      content aggregate, articles and the Google web-bridge exchange ---- */
+
+    @GET("api/mobile/version")
+    suspend fun mobileVersion(): VersionResponse
+
+    @GET("api/mobile/home")
+    suspend fun mobileHome(): HomeResponse
+
+    @GET("api/mobile/services")
+    suspend fun mobileServices(): ServicesResponse
+
+    @GET("api/mobile/articles")
+    suspend fun mobileArticles(
+        @Query("limit") limit: Int = 30,
+        @Query("offset") offset: Int = 0,
+    ): ArticlesResponse
+
+    @GET("api/mobile/articles/{key}")
+    suspend fun mobileArticle(@Path("key") key: String): ArticleDetailResponse
+
+    @POST("api/mobile/auth/exchange")
+    suspend fun exchangeCode(@Body body: ExchangeCodeIn): ExchangeResponse
+
+    @POST("api/mobile/auth/cancel")
+    suspend fun cancelAuth(@Body body: CancelAuthIn): SimpleOkResponse
+
+    /* support chat — login strictly required by the server (401 envelope otherwise) */
+
+    @GET("api/support/messages")
+    suspend fun supportMessages(): SupportMessagesResponse
+
+    @POST("api/support/messages")
+    suspend fun sendSupportMessage(@Body body: SendSupportIn): SupportMessagesResponse
+
+    /** Image/audio attachment (multipart). At least one of body/file must be present. */
+    @Multipart
+    @POST("api/support/messages")
+    suspend fun sendSupportMessageWithFile(
+        @Part file: MultipartBody.Part,
+        @Part("body") body: RequestBody?,
+        @Part("duration") duration: RequestBody?,
+    ): SupportMessagesResponse
 }
-
-/** Profile patch payload (both fields optional). */
-@Serializable
-data class UpdateProfileIn(
-    val preferred_language: String? = null,
-    val display_name: String? = null,
-)
