@@ -1,10 +1,16 @@
 package ir.pardava.mobile.ui.screens.lesson
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -111,20 +119,65 @@ fun LessonScreen(
         }
     }
 
+    // ---- video fullscreen state machine (hoisted here: while fullscreen the
+    //      whole screen collapses to the player so the video slot truly expands,
+    //      the top bar disappears and system bars hide) ----
+    var fullscreen by remember { mutableStateOf(false) }
+    var landscapeLatch by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val config = LocalConfiguration.current
+    val activity = LocalContext.current as? Activity
+    val ready = state as? LessonUiState.Ready
+    val readyLesson = ready?.lesson?.lesson
+    val videoUrl = ready?.let { vm.videoUrl() }
+    val showVideo = readyLesson?.hasVideo == true && videoUrl != null &&
+        readyLesson.state != LessonItemDto.STATE_LOCKED
+
+    fun exitFullscreen() {
+        fullscreen = false
+        landscapeLatch = true
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    }
+
+    // auto fullscreen on physical rotation to landscape, auto-exit on portrait.
+    // landscapeLatch blocks instant re-entry after a manual exit while the
+    // device is still held in landscape; it clears as soon as portrait returns.
+    LaunchedEffect(config.orientation, showVideo) {
+        when (config.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE ->
+                if (showVideo && !fullscreen && !landscapeLatch) fullscreen = true
+            else -> {
+                landscapeLatch = false
+                if (fullscreen) fullscreen = false
+            }
+        }
+    }
+
+    BackHandler(enabled = fullscreen) { exitFullscreen() }
+
+    // never leave the activity stuck in a locked orientation
+    DisposableEffect(Unit) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.lesson_body), maxLines = 1) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            )
+            if (!fullscreen) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.lesson_body), maxLines = 1) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                )
+            }
         },
     ) { padding ->
         when (val s = state) {
@@ -150,28 +203,61 @@ fun LessonScreen(
                 val lesson = s.lesson.lesson
                 if (lesson == null) {
                     ErrorState(message = stringResource(R.string.error_generic), onRetry = { vm.load() })
-                    return@Scaffold
+                } else {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(if (fullscreen) PaddingValues(0.dp) else padding),
+                    ) {
+                        // ---- video player: collapses the whole screen when fullscreen,
+                        //      same composable slot either way (no player re-creation) ----
+                        if (showVideo && videoUrl != null) {
+                            androidx.compose.runtime.key(videoUrl) {
+                                LessonVideoPlayer(
+                                    url = videoUrl,
+                                    bearerToken = app.session.token,
+                                    resumePositionSec = vm.resumeSec.collectAsStateWithLifecycle().value ?: 0.0,
+                                    lang = lang,
+                                    isFullscreen = fullscreen,
+                                    onToggleFullscreen = { enter ->
+                                        if (enter) {
+                                            fullscreen = true
+                                            activity?.requestedOrientation =
+                                                ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                                        } else {
+                                            exitFullscreen()
+                                        }
+                                    },
+                                    onProgressTick = { pos, dur -> vm.saveProgress(pos, dur) },
+                                    onEvent = { name, detail -> app.logger.log(name, label = lesson.title, detail = detail) },
+                                    modifier = if (fullscreen) {
+                                        Modifier.fillMaxSize()
+                                    } else {
+                                        Modifier.fillMaxWidth().height(220.dp)
+                                    },
+                                )
+                            }
+                        }
+                        if (!fullscreen) {
+                            LessonContent(
+                                app = app,
+                                lesson = lesson,
+                                lang = lang,
+                                signedIn = signedIn,
+                                busy = busy,
+                                scrollState = scrollState,
+                                onComplete = { vm.complete(signedIn, onNeedLogin = onOpenLogin) },
+                                onDownload = { vm.downloadFile(app) },
+                                onDownloadAttachment = { att -> vm.downloadAttachment(app, att) },
+                                onEnroll = { vm.enroll(signedIn, onOpenLogin) },
+                                onPrev = { lesson.prevId?.let { id -> vm.openLesson(id) } },
+                                onNext = { lesson.nextId?.let { id -> vm.openLesson(id) } },
+                                onOpenLogin = onOpenLogin,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
-                LessonContent(
-                    app = app,
-                    lesson = lesson,
-                    lang = lang,
-                    signedIn = signedIn,
-                    busy = busy,
-                    resumeSec = vm.resumeSec.collectAsStateWithLifecycle().value,
-                    videoUrl = vm.videoUrl(),
-                    onProgressTick = { pos, dur -> vm.saveProgress(pos, dur) },
-                    onVideoEvent = { name, detail -> app.logger.log(name, label = lesson.title, detail = detail) },
-                    onReload = { vm.load() },
-                    onComplete = { vm.complete(signedIn, onNeedLogin = onOpenLogin) },
-                    onDownload = { vm.downloadFile(app) },
-                    onDownloadAttachment = { att -> vm.downloadAttachment(app, att) },
-                    onEnroll = { vm.enroll(signedIn, onOpenLogin) },
-                    onPrev = { lesson.prevId?.let { id -> vm.openLesson(id) } },
-                    onNext = { lesson.nextId?.let { id -> vm.openLesson(id) } },
-                    onOpenLogin = onOpenLogin,
-                    modifier = Modifier.padding(padding),
-                )
             }
         }
     }
@@ -234,11 +320,7 @@ private fun LessonContent(
     lang: String,
     signedIn: Boolean,
     busy: Boolean,
-    resumeSec: Double?,
-    videoUrl: String?,
-    onProgressTick: (Double, Double) -> Unit,
-    onVideoEvent: (String, Map<String, String>) -> Unit,
-    onReload: () -> Unit,
+    scrollState: ScrollState,
     onComplete: () -> Unit,
     onDownload: () -> Unit,
     onDownloadAttachment: (LessonAttachmentDto) -> Unit,
@@ -251,24 +333,8 @@ private fun LessonContent(
     Column(
         modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(scrollState),
     ) {
-        // ---- video player (top, full-bleed) ----
-        val showVideo = lesson.hasVideo == true && videoUrl != null &&
-            lesson.state != LessonItemDto.STATE_LOCKED
-        if (showVideo) {
-            androidx.compose.runtime.key(videoUrl) {
-                LessonVideoPlayer(
-                    url = videoUrl!!,
-                    bearerToken = app.session.token,
-                    resumePositionSec = resumeSec ?: 0.0,
-                    lang = lang,
-                    onProgressTick = onProgressTick,
-                    onEvent = onVideoEvent,
-                    modifier = Modifier.fillMaxWidth().height(220.dp),
-                )
-            }
-        }
         Column(Modifier.padding(16.dp)) {
         Text(
             lesson.title ?: "",

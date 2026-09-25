@@ -78,6 +78,9 @@ private val SPEEDS = floatArrayOf(0.75f, 1f, 1.25f, 1.5f, 2f)
  * - resumes from the server-saved watch position, reports progress while playing
  * - custom controls: play/pause, ±10s, speed cycle, fullscreen, localized digits
  * - keep-screen-on while playing, auto-hiding controls, immersive fullscreen
+ * - fullscreen STATE is hoisted to the host screen (it must expand the player
+ *   slot, lock orientation and handle back); this composable only renders the
+ *   toggle and hides/shows the system bars.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -86,6 +89,8 @@ fun LessonVideoPlayer(
     bearerToken: String?,
     resumePositionSec: Double,
     lang: String,
+    isFullscreen: Boolean,
+    onToggleFullscreen: (enter: Boolean) -> Unit,
     onProgressTick: (positionSec: Double, durationSec: Double) -> Unit,
     onEvent: (name: String, detail: Map<String, String>) -> Unit,
     modifier: Modifier = Modifier,
@@ -100,7 +105,6 @@ fun LessonVideoPlayer(
     var positionMs by remember { mutableLongStateOf(0L) }
     var speedIndex by remember { mutableStateOf(1) }
     var controlsVisible by remember { mutableStateOf(true) }
-    var isFullscreen by remember { mutableStateOf(false) }
     var resumed by remember { mutableStateOf(false) }
     var errorName by remember { mutableStateOf<String?>(null) }
     val activity = context as? android.app.Activity
@@ -189,21 +193,18 @@ fun LessonVideoPlayer(
         onDispose { view.keepScreenOn = false }
     }
 
-    // ---- fullscreen orientation + immersive system bars ----
+    // ---- immersive system bars while fullscreen (orientation is caller's job) ----
     DisposableEffect(isFullscreen) {
         val window = activity?.window
         val controller = window?.let { WindowCompat.getInsetsController(it, view) }
         if (isFullscreen) {
-            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             controller?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(WindowInsetsCompat.Type.systemBars())
         } else {
-            activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             controller?.show(WindowInsetsCompat.Type.systemBars())
         }
         onDispose {
             if (isFullscreen) {
-                activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                 controller?.show(WindowInsetsCompat.Type.systemBars())
             }
         }
@@ -309,9 +310,12 @@ fun LessonVideoPlayer(
                     }
                 }
 
-                // speed + fullscreen (top corner)
+                // speed + fullscreen (top corner; extra top padding in fullscreen
+                // so controls clear the camera cutout on notched devices)
                 Row(
-                    Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    Modifier.align(Alignment.TopEnd)
+                        .padding(top = if (isFullscreen) 14.dp else 8.dp)
+                        .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(alpha = 0.45f)) {
@@ -334,7 +338,7 @@ fun LessonVideoPlayer(
                         }
                     }
                     Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(alpha = 0.45f)) {
-                        IconButton(onClick = { isFullscreen = !isFullscreen }) {
+                        IconButton(onClick = { onToggleFullscreen(!isFullscreen) }) {
                             Icon(
                                 if (isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                                 contentDescription = stringResource(R.string.player_fullscreen),
