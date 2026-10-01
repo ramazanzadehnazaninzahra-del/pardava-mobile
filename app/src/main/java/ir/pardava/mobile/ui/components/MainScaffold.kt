@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +62,7 @@ fun MainScaffold(
     onOpenSettings: () -> Unit,
     onOpenLogin: () -> Unit,
     onOpenChat: () -> Unit = {},
+    onOpenVoiceAssistant: () -> Unit = {},
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -119,6 +122,19 @@ fun MainScaffold(
                         label = { Text(spec.label) },
                     )
                 }
+            }
+        },
+        // دکمهٔ چسبان گفتگو — روی همهٔ تب‌ها بالای نوار پایین در دسترس است
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onOpenVoiceAssistant,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Icon(
+                    Icons.Filled.Mic,
+                    contentDescription = stringResource(R.string.va_fab_desc),
+                )
             }
         },
     ) { padding ->
