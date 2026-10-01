@@ -32,6 +32,7 @@ import ir.pardava.mobile.data.dto.SimpleOkResponse
 import ir.pardava.mobile.data.dto.SupportMessagesResponse
 import ir.pardava.mobile.data.dto.TokenResponse
 import ir.pardava.mobile.data.dto.VersionResponse
+import ir.pardava.mobile.data.dto.VoiceAssistantResponse
 import ir.pardava.mobile.data.dto.WatchIn
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -185,4 +186,14 @@ interface PardavaApi {
         @Part("body") body: RequestBody?,
         @Part("duration") duration: RequestBody?,
     ): SupportMessagesResponse
+
+    /* voice assistant — server pipeline: audio → ASR → chatbot → TTS → answer */
+
+    /** voice.m4a یا سؤال متنی؛ پاسخ همیشه HTTP 200 با پاکت {ok, stage, …} است. */
+    @Multipart
+    @POST("api/voice-assistant/ask")
+    suspend fun voiceAssistantAsk(
+        @Part file: MultipartBody.Part?,
+        @Part("text") text: RequestBody?,
+    ): VoiceAssistantResponse
 }

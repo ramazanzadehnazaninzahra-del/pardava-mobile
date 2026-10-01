@@ -629,3 +629,22 @@ data class SupportMessagesResponse(
 
 @Serializable
 data class SendSupportIn(val body: String)
+
+/* ---------------- voice assistant (https://pardava.ir/api/voice-assistant) ---------------- */
+
+@Serializable
+data class VoiceAssistantResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    /** نتیجهٔ ساخت‌یافته — audio | text_only | quota_exhausted | asr_failed | … */
+    val stage: String? = null,
+    val question: String? = null,
+    val answer: String? = null,
+    @SerialName("audio_b64") val audioB64: String? = null,
+    @SerialName("audio_mime") val audioMime: String? = null,
+    @SerialName("elapsed_ms") val elapsedMs: Long? = null,
+    val used: Int? = null,
+    val limit: Int? = null,
+) : Envelope

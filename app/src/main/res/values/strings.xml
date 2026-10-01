@@ -193,4 +193,31 @@
     <string name="chat_image_failed">Could not read the image</string>
     <string name="chat_image_too_large">Image must be under 5 MB</string>
     <string name="chat_audio_too_large">Audio must be under 10 MB</string>
+
+    <!-- Voice assistant -->
+    <string name="va_title">Voice Assistant</string>
+    <string name="va_subtitle">Ask your question by voice, hear the answer</string>
+    <string name="va_fab_desc">Ask by voice</string>
+    <string name="va_ask">Ask by voice</string>
+    <string name="va_tap_to_ask">Tap the microphone and ask your question</string>
+    <string name="va_stop">Stop</string>
+    <string name="va_cancel">Cancel</string>
+    <string name="va_listening">Listening…</string>
+    <string name="va_thinking">Thinking…</string>
+    <string name="va_thinking_hint">Converting your voice to text, finding the answer, and preparing the audio</string>
+    <string name="va_you">You</string>
+    <string name="va_assistant">Pardava</string>
+    <string name="va_replay">Play answer</string>
+    <string name="va_new_question">New question</string>
+    <string name="va_playing">Playing the answer…</string>
+    <string name="va_tap_again">Tap the microphone for a new question</string>
+    <string name="va_text_hint">Or type your question…</string>
+    <string name="va_send">Send</string>
+    <string name="va_mic_permission">Microphone permission is needed to record your question</string>
+    <string name="va_record_failed">Recording failed; please try again</string>
+    <string name="va_error_quota">Your free daily quota is finished; try again tomorrow or sign in for a bigger quota</string>
+    <string name="va_error_asr">I could not hear you clearly; please ask again</string>
+    <string name="va_error_chat">I could not build an answer right now; please try again later</string>
+    <string name="va_rate_limited">Too many requests; please wait a moment</string>
+    <string name="va_error_generic">Something went wrong; please try again</string>
 </resources>

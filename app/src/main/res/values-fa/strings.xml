@@ -193,4 +193,31 @@
     <string name="chat_image_failed">خواندن عکس ممکن نشد</string>
     <string name="chat_image_too_large">حجم عکس باید کمتر از ۵ مگابایت باشد</string>
     <string name="chat_audio_too_large">حجم صدا باید کمتر از ۱۰ مگابایت باشد</string>
+
+    <!-- دستیار صوتی -->
+    <string name="va_title">دستیار صوتی</string>
+    <string name="va_subtitle">سؤالت را با صدا بپرس، جواب را بشنو</string>
+    <string name="va_fab_desc">پرسش صوتی</string>
+    <string name="va_ask">پرسش صوتی</string>
+    <string name="va_tap_to_ask">دکمهٔ میکروفون را بزن و سؤالت را بپرس</string>
+    <string name="va_stop">توقف</string>
+    <string name="va_cancel">انصراف</string>
+    <string name="va_listening">در حال شنیدن…</string>
+    <string name="va_thinking">دارم فکر می‌کنم…</string>
+    <string name="va_thinking_hint">صدایت را به متن تبدیل می‌کنم، جواب را می‌سازم و آمادهٔ پخش می‌کنم</string>
+    <string name="va_you">سؤال تو</string>
+    <string name="va_assistant">پردآوا</string>
+    <string name="va_replay">پخش پاسخ</string>
+    <string name="va_new_question">پرسش جدید</string>
+    <string name="va_playing">در حال پخش پاسخ…</string>
+    <string name="va_tap_again">برای پرسش جدید دکمهٔ میکروفون را بزن</string>
+    <string name="va_text_hint">یا سؤالت را بنویس…</string>
+    <string name="va_send">ارسال</string>
+    <string name="va_mic_permission">برای ضبط سؤال صوتی، اجازهٔ میکروفون لازم است</string>
+    <string name="va_record_failed">ضبط صدا انجام نشد؛ دوباره تلاش کن</string>
+    <string name="va_error_quota">سهمیهٔ رایگان امروزت تمام شد؛ فردا دوباره تلاش کن یا وارد حسابت شو تا سهمیهٔ بیشتری بگیری</string>
+    <string name="va_error_asr">صدایت را خوب نشنیدم؛ لطفاً واضح‌تر دوباره بپرس</string>
+    <string name="va_error_chat">الان نتوانستم جواب بسازم؛ کمی بعد دوباره تلاش کن</string>
+    <string name="va_rate_limited">درخواست‌ها زیاد است؛ چند لحظه صبر کن</string>
+    <string name="va_error_generic">مشکلی پیش آمد؛ دوباره تلاش کن</string>
 </resources>

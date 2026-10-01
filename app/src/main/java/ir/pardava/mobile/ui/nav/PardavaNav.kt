@@ -37,6 +37,7 @@ import ir.pardava.mobile.ui.screens.leaderboard.LeaderboardScreen
 import ir.pardava.mobile.ui.screens.lesson.LessonScreen
 import ir.pardava.mobile.ui.screens.login.LoginScreen
 import ir.pardava.mobile.ui.screens.settings.SettingsScreen
+import ir.pardava.mobile.ui.screens.voice.VoiceAssistantScreen
 import ir.pardava.mobile.ui.screens.web.WebScreen
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,7 @@ object Routes {
     const val QUIZ = "quiz/{slug}"
     const val CERT = "cert/{slug}"
     const val CHAT = "chat"
+    const val VOICE_ASSISTANT = "voice_assistant"
 
     fun course(slug: String) = "course/$slug"
     fun lesson(slug: String, lessonId: Long) = "lesson/$slug/$lessonId"
@@ -160,6 +162,7 @@ fun PardavaNav(app: PardavaApp) {
                     onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                     onOpenLogin = { nav.navigate(Routes.LOGIN) },
                     onOpenChat = { nav.navigate(Routes.CHAT) },
+                    onOpenVoiceAssistant = { nav.navigate(Routes.VOICE_ASSISTANT) },
                 )
             }
 
@@ -187,6 +190,13 @@ fun PardavaNav(app: PardavaApp) {
                     app = app,
                     onBack = { nav.popBackStack() },
                     onOpenLogin = { nav.navigate(Routes.LOGIN) },
+                )
+            }
+
+            composable(Routes.VOICE_ASSISTANT) {
+                VoiceAssistantScreen(
+                    app = app,
+                    onBack = { nav.popBackStack() },
                 )
             }
 
