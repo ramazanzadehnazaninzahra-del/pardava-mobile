@@ -1,6 +1,6 @@
 package ir.pardava.mobile.ui.screens.quiz
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,30 +9,32 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,305 +43,263 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
-import ir.pardava.mobile.core.Fmt
-import ir.pardava.mobile.data.dto.AttemptQuestionOut
-import ir.pardava.mobile.data.dto.PerQuestionResultOut
-import ir.pardava.mobile.data.dto.SubmitResultOut
-import ir.pardava.mobile.ui.screens.courses.SimpleVmFactory
+import ir.pardava.mobile.core.ApiClient
+import ir.pardava.mobile.data.dto.ApiException
+import ir.pardava.mobile.data.dto.QuizDto
+import ir.pardava.mobile.data.dto.QuizQuestionDto
+import ir.pardava.mobile.data.dto.QuizResultDto
+import ir.pardava.mobile.data.dto.QuizSubmitIn
+import ir.pardava.mobile.ui.components.ErrorState
+import ir.pardava.mobile.ui.components.LoadingBox
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
+sealed interface QuizUiState {
+    data object Loading : QuizUiState
+    data class Ready(val quiz: QuizDto) : QuizUiState
+    data class Failure(val message: String) : QuizUiState
+}
+
+class QuizViewModel(private val client: ApiClient, private val slug: String) : ViewModel() {
+
+    private val _state = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
+    val state: StateFlow<QuizUiState> = _state
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting
+
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message
+
+    fun consumeMessage() { _message.value = null }
+
+    fun load() {
+        _state.value = QuizUiState.Loading
+        viewModelScope.launch {
+            try {
+                val res = client.call { client.api.quiz(slug) }
+                val quiz = res.quiz
+                if (quiz == null || quiz.questions.isEmpty()) {
+                    _state.value = QuizUiState.Failure(res.error ?: "")
+                } else {
+                    _state.value = QuizUiState.Ready(quiz)
+                }
+            } catch (e: Exception) {
+                _state.value = QuizUiState.Failure(e.message ?: "error")
+            }
+        }
+    }
+
+    /** Submits answers {questionId: "a".."d"} and delivers the graded result. */
+    fun submit(answers: Map<Long, String>, onResult: (QuizResultDto) -> Unit) {
+        if (_submitting.value) return
+        _submitting.value = true
+        viewModelScope.launch {
+            try {
+                val payload = answers.entries.associate { it.key.toString() to it.value }
+                val res = client.call { client.api.submitQuiz(slug, QuizSubmitIn(payload)) }
+                res.result?.let(onResult)
+            } catch (e: ApiException) {
+                _message.value = e.message
+            } catch (e: Exception) {
+                _message.value = e.message ?: "error"
+            } finally {
+                _submitting.value = false
+            }
+        }
+    }
+}
+
+/**
+ * Course quiz: one screen with all questions, radio options, submit → graded
+ * result card with score / best record.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuizScreen(
     app: PardavaApp,
-    courseSlug: String,
-    lessonSlug: String,
-    quizId: Long,
+    slug: String,
     onBack: () -> Unit,
 ) {
-    val lang = app.currentLanguage()
-    val vm: QuizViewModel = viewModel(key = "quiz-$quizId", factory = QuizVmFactory(app.api, quizId))
-    val state by vm.state.collectAsState()
-    val answers by vm.answers.collectAsState()
-    val secondsLeft by vm.secondsLeft.collectAsState()
-    var confirmSubmit by remember { mutableStateOf(false) }
+    val vm: QuizViewModel = viewModel(
+        key = slug,
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                QuizViewModel(app.api, slug) as T
+        },
+    )
+    val state by vm.state.collectAsStateWithLifecycle()
+    val submitting by vm.submitting.collectAsStateWithLifecycle()
 
-    LaunchedEffect(quizId) { vm.start(lang) }
+    LaunchedEffect(slug) { vm.load() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.lesson_quiz), maxLines = 1) },
+                title = { Text(stringResource(R.string.quiz_title), maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
             )
         },
     ) { padding ->
         when (val s = state) {
-            is QuizUiState.Loading -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
-
-            is QuizUiState.Failure -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(s.message, color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = onBack) { Text(stringResource(R.string.quiz_back_to_lesson)) }
-                }
-            }
-
-            is QuizUiState.Answering -> Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Countdown + progress
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        Fmt.digits(
-                            "${answers.size} / ${s.questions.questions.size}",
-                            lang,
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    secondsLeft?.let { left ->
-                        Text(
-                            stringResource(R.string.quiz_time_left, Fmt.duration(left.toInt(), lang)),
-                            fontWeight = FontWeight.Bold,
-                            color = if (left <= 30) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-
-                s.questions.questions.forEachIndexed { index, q ->
-                    QuestionCard(
-                        index = index + 1,
-                        total = s.questions.questions.size,
-                        question = q,
-                        lang = lang,
-                        selected = answers[q.id],
-                        onChooseOption = { vm.setAnswer(q.id, it) },
-                        onTrueFalse = { vm.setAnswer(q.id, it) },
-                        onShortCode = { vm.setAnswer(q.id, it) },
-                    )
-                }
-
-                Button(
-                    onClick = { confirmSubmit = true },
-                    enabled = answers.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.quiz_submit))
-                }
-            }
-
-            is QuizUiState.Result -> ResultPanel(
-                result = s.result,
-                lang = lang,
-                onBack = onBack,
-                onRetake = { vm.start(lang) },
+            is QuizUiState.Loading -> LoadingBox()
+            is QuizUiState.Failure -> ErrorState(message = s.message.ifBlank { stringResource(R.string.error_generic) }, onRetry = { vm.load() })
+            is QuizUiState.Ready -> QuizContent(
+                quiz = s.quiz,
+                submitting = submitting,
+                onSubmit = { answers, onResult -> vm.submit(answers, onResult) },
+                modifier = Modifier.padding(padding),
             )
         }
-    }
-
-    if (confirmSubmit) {
-        AlertDialog(
-            onDismissRequest = { confirmSubmit = false },
-            title = { Text(stringResource(R.string.quiz_submit)) },
-            text = { Text(stringResource(R.string.quiz_submit_confirm)) },
-            confirmButton = {
-                Button(onClick = { confirmSubmit = false; vm.submit(lang) }) {
-                    Text(stringResource(R.string.ok))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { confirmSubmit = false }) { Text(stringResource(R.string.cancel)) }
-            },
-        )
     }
 }
 
 @Composable
-private fun QuestionCard(
-    index: Int,
-    total: Int,
-    question: AttemptQuestionOut,
-    lang: String,
-    selected: Any?,
-    onChooseOption: (Long) -> Unit,
-    onTrueFalse: (Boolean) -> Unit,
-    onShortCode: (String) -> Unit,
+private fun QuizContent(
+    quiz: QuizDto,
+    submitting: Boolean,
+    onSubmit: (Map<Long, String>, (QuizResultDto) -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+    val answers = remember { mutableStateMapOf<Long, String>() }
+    var result by remember { mutableStateOf<QuizResultDto?>(null) }
+    val allAnswered = quiz.questions.all { q -> q.id != null && answers[q.id] != null }
+
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+    ) {
+        Text(
+            quiz.title ?: "",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.quiz_questions_count, quiz.questions.size) +
+                " · " + stringResource(R.string.quiz_pass_line, quiz.passPercent ?: 60) +
+                (quiz.best?.let { " · " + stringResource(R.string.quiz_best, it) } ?: ""),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(14.dp))
+
+        result?.let { res ->
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (res.passed == true)
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                    else
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                ),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    stringResource(R.string.quiz_question_of, Fmt.int(index, lang), Fmt.int(total, lang)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    stringResource(R.string.xp_earned, Fmt.int(question.points, lang)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        if (res.passed == true) Icons.Filled.EmojiEvents else Icons.Filled.Cancel,
+                        contentDescription = null,
+                        tint = if (res.passed == true) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(42.dp),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        stringResource(R.string.quiz_score, res.score ?: 0),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        if (res.passed == true) stringResource(R.string.quiz_passed)
+                        else stringResource(R.string.quiz_failed, res.passPercent ?: 60),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(R.string.quiz_correct_count, res.correct ?: 0, res.total ?: 0) +
+                            (res.best?.let { " · " + stringResource(R.string.quiz_best, it) } ?: ""),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-            Text(question.prompt, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(14.dp))
+        }
 
-            when (question.type) {
-                "single_choice" -> question.options.forEach { opt ->
-                    FilterChip(
-                        selected = selected == opt.id,
-                        onClick = { onChooseOption(opt.id) },
-                        label = { Text(opt.text) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+        quiz.questions.forEach { q ->
+            QuizQuestion(q, answers)
+            Spacer(Modifier.height(12.dp))
+        }
 
-                "true_false" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = selected == true,
-                        onClick = { onTrueFalse(true) },
-                        label = { Text(stringResource(R.string.quiz_true)) },
-                    )
-                    FilterChip(
-                        selected = selected == false,
-                        onClick = { onTrueFalse(false) },
-                        label = { Text(stringResource(R.string.quiz_false)) },
-                    )
-                }
-
-                "short_code" -> OutlinedTextField(
-                    value = (selected as? String) ?: "",
-                    onValueChange = onShortCode,
-                    label = { Text(stringResource(R.string.quiz_answer_here)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                )
+        Spacer(Modifier.height(6.dp))
+        Button(
+            onClick = { onSubmit(answers.toMap()) { result = it } },
+            enabled = !submitting && allAnswered,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            if (submitting) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Text(stringResource(R.string.quiz_submit))
             }
         }
+        Spacer(Modifier.height(20.dp))
     }
 }
 
 @Composable
-private fun ResultPanel(result: SubmitResultOut, lang: String, onBack: () -> Unit, onRetake: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+private fun QuizQuestion(q: QuizQuestionDto, answers: MutableMap<Long, String>) {
+    val qid = q.id ?: return
+    val labels = listOf("a" to "الف", "b" to "ب", "c" to "ج", "d" to "د")
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = if (result.passed) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.errorContainer,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    if (result.passed) stringResource(R.string.quiz_passed_result)
-                    else stringResource(R.string.quiz_failed_result),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    stringResource(R.string.quiz_score, Fmt.int(result.score_percent.toInt(), lang)),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(stringResource(R.string.quiz_pass_line, Fmt.int(result.pass_score_percent, lang)))
-                if (result.xp_awarded.isNotEmpty()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        result.xp_awarded.forEach { xp ->
-                            Text(
-                                stringResource(R.string.xp_earned, Fmt.int(xp.amount, lang)),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            if (xp != result.xp_awarded.last()) {
-                                Text("+", color = MaterialTheme.colorScheme.primary)
-                            }
-                        }
+        Column(Modifier.padding(14.dp)) {
+            Text(
+                (q.position?.toString() ?: "") + ". " + (q.text ?: ""),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(8.dp))
+            labels.forEach { (key, label) ->
+                val optionText = q.options[key].orEmpty()
+                if (optionText.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (answers[qid] == key)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                                else
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                RoundedCornerShape(10.dp),
+                            ),
+                    ) {
+                        RadioButton(
+                            selected = answers[qid] == key,
+                            onClick = { answers[qid] = key },
+                        )
+                        Text("$label) $optionText", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                result.new_achievements.forEach { a ->
-                    Text(stringResource(R.string.new_achievement, a.name), color = MaterialTheme.colorScheme.secondary)
-                }
-            }
-        }
-
-        result.per_question.forEach { r ->
-            QuestionResultRow(r, lang)
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onBack) { Text(stringResource(R.string.quiz_back_to_lesson)) }
-            if (!result.passed) {
-                OutlinedButton(onClick = onRetake) { Text(stringResource(R.string.quiz_retake)) }
             }
         }
     }
-}
-
-@Composable
-private fun QuestionResultRow(r: PerQuestionResultOut, lang: String) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    if (r.correct) stringResource(R.string.quiz_correct) else stringResource(R.string.quiz_wrong),
-                    fontWeight = FontWeight.Bold,
-                    color = if (r.correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                )
-                Text(stringResource(R.string.xp_earned, Fmt.int(r.points, lang)), style = MaterialTheme.typography.labelMedium)
-            }
-            HorizontalDivider()
-            val answerText = r.correct_answer["option_id"]?.toString()
-                ?: r.correct_answer["answer"]?.toString()
-                ?: r.correct_answer["accepted"]?.toString()
-                ?: "—"
-            Text(
-                stringResource(R.string.quiz_correct_answer) + ": " + answerText.trim('"', '[', ']'),
-                style = MaterialTheme.typography.bodySmall,
-            )
-            r.explanation?.let {
-                Text(
-                    stringResource(R.string.quiz_explanation) + ": " + it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-class QuizVmFactory(private val client: ir.pardava.mobile.core.ApiClient, private val quizId: Long) :
-    androidx.lifecycle.ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-        QuizViewModel(client, quizId) as T
 }

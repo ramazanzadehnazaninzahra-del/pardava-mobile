@@ -1,110 +1,107 @@
 # پردآوا موبایل — pardava-mobile
 
-اپلیکیشن اندروید پلتفرم آموزشی **پردآوا** (برنامه‌نویسی و هوش مصنوعی، دوزبانه فارسی/انگلیسی).
-این ریپو مستقل است و فقط با **LMS API** (سرویس FastAPI در ریپوی `pardava`، مسیر `backend/`) کار می‌کند.
+اپلیکیشن اندروید پلتفرم آموزشی **پردآوا** (برنامه‌نویسی و هوش مصنوعی).
+این ریپو مستقل است و با **Pardava Courses API** (`https://pardava.ir/api/courses`، نسخهٔ 1.1.0) کار می‌کند.
 
-> **مرحلهٔ ۴ نقشه راه پلتفرم (v0.4.0)** — نسخهٔ فعلی: `0.4.0`
+> نسخهٔ فعلی: `0.9.0` (versionCode 8)
 
 ## امکانات
 
 | بخش | توضیح |
 |------|-------|
-| ورود | OTP موبایل (نمایش کد در حالت dev سرور) + دکمهٔ گوگل (نیازمند تنظیم Firebase؛ تا آن موقع غیرفعال) |
-| دوره‌ها | فهرست دوره‌ها، درخت فصل/جلسه با وضعیت **قفل/تکمیل/قبولی آزمون** (قفل ترتیبی سمت سرور اعمال می‌شود) |
-| جلسه | پخش‌کنندهٔ ویدیو (Media3/ExoPlayer) با **زیرنویس WebVTT ساید‌لودشده**، متن جلسه، نمونه کد، تمرین |
-| پیشرفت | گزارش خودکار هر ۱۵ ثانیه (ثانیه/درصد تماشا)؛ سرور تصمیم می‌گیرد چه زمانی جلسه «تکمیل» شود |
-| آزمون | شروع/ادامهٔ تلاش، تایمر شمارش معکوس با ارسال خودکار در صفر، سه نوع سؤال (چهارگزینه‌ای/صحت‌وخطا/کد کوتاه)، گزارش سؤال‌به‌سؤال، XP و دستاورد جدید |
-| بازی‌وارسازی | XP، سطح، استریک، دستاوردها، رتبه‌بندی (هفتگی/ماهانه/کلی) |
-| دوزبانه | fa پیش‌فرض (RTL) + en؛ سوییچ داخل اپ؛ هم‌زمان `Accept-Language` و ترجیح سمت سرور تنظیم می‌شود |
-| احراز هویت | JWT + refresh چرخشی؛ تمدید خودکار و single-flight در 401؛ خروج خودکار در نشست مسکوک |
+| لوگوی رسمی | آیکون اپ، لوگوی اصلی پردآوا (پَر) روی گرادیان آبی برند از pardava.ir — با پشتیبانی از Themed Icon اندروید ۱۳+ |
+| مرور بدون حساب | فهرست دوره‌ها، صفحهٔ هر دوره، جلسات پیش‌نمایش و لیگ امتیازات **بدون لاگین** قابل استفاده‌اند |
+| دوره‌ها | جستجوی زنده + چیپ‌های فیلتر (همه/رایگان/ویژه + سطح + دسته) · Pull-to-Refresh · کارت غنی (کاور، دسته/سطح، جلسات، دانشجو، مدت، امتیاز هر جلسه) · بارگذاری اسکلتی (skeleton) |
+| جزئیات دوره | هدر گرادیانی، نوار پیشرفت برای فراگیر، CTA «ثبت‌نام رایگان» یا «درخواست خرید» (خرید ویژه با تأیید مدیر سایت)، نقشهٔ جلسات با وضعیت قفل/پیش‌نمایش/تکمیل |
+| جلسه | متن جلسه با پاراگراف‌بندی، تکمیل جلسه و دریافت امتیاز، جلسهٔ قبل/بعد، دانلود پیوست در Downloads |
+| لیگ | رتبه‌بندی عمومی یا به‌تفکیک دوره با نشان طلا/نقره/برنز و «شما» |
+| ورود | OTP موبایل ایران (۰۹…) + نام کاربری/رمز + گوگل (Credential Manager؛ فعال پس از تنظیم Firebase) |
+| پروفایل | مهمان: دعوت به ورود؛ کاربر: نام/ایمیل/امتیاز/دوره‌های فعال + بخش «ادامهٔ یادگیری» با میان‌بر به هر دوره |
+| تنظیمات | زبان (فارسی پیش‌فرض / English) · تم (سیستم/روشن/تاریک) · اندازهٔ فونت (۴ سطح) · درباره — فقط تنظیمات کاربری، بدون فیلد فنی/سرور |
+| همهٔ سرویس‌ها | تب «خدمات»: ۲۲ سرویس pardava.ir (چت هوشمند، گفتار، مترجم، حذف پس‌زمینه، قیمت لحظه‌ای، بازی‌ها و…) درون اپ باز می‌شوند |
+| مقالات | فهرست و خوانش کامل مقالات سایت با رنگ‌بندی سایت |
+| ورود گوگل | از طریق pardava.ir: ورود در سایت و بازگشت خودکار به اپ (بدون نیاز به Firebase) |
+| آپدیت درون‌برنامه‌ای | چک نسخه از `/api/mobile/version` + دانلود مستقیم APK از سرور پردآوا (تنظیمات → به‌روزرسانی؛ همچنین چک خودکار هنگام شروع) |
+| همگام‌سازی نسخه | منبع یگانهٔ نسخه: `data/mobile_version.json` روی سرور — اپ در شروع، نسخهٔ جدید را پیشنهاد می‌دهد |
+| دوزبانه | fa پیش‌فرض (RTL) + en؛ سوییچ داخل اپ با per-app locales |
+
+## قرارداد سرور (نکات مهم پیاده‌سازی)
+
+- همهٔ پاسخ‌ها **HTTP 200** هستند؛ موفقیت/خطا با پاکت `{ok, code, error, action}` مشخص می‌شود
+  (خطاهای CDN صفحهٔ HTML برمی‌گردانند — اپ این حالت را با پیام دوستانه می‌گیرد).
+- آدرس پایه، **ریشهٔ سایت** است (`https://pardava.ir/`) و مسیرها `api/courses/…` هستند؛
+  URL با اسلش پایانی (`/api/courses/`) پاسخ HTML می‌دهد — اپ همیشه بدون اسلش اضافه صدا می‌زند.
+- نشست با یک توکن یگانه (`pdv_…`) و هدر `Authorization: Bearer` است (no refresh flow).
+- جلسات با **شناسهٔ عددی** آدرس می‌شوند: `GET /{slug}/lessons/{lesson_id}`.
+- نشانی‌های نسبی (کاور/آواتار) با ریشهٔ سایت مطلق می‌شوند.
 
 ## معماری
 
 ```
 app/src/main/java/ir/pardava/mobile/
-├── core/        ApiClient (Retrofit+OkHttp+refresh) · TokenStore (DataStore) · Fmt · QuizTimer
-├── data/        PardavaApi (Retrofit) · dto/ (kotlinx.serialization)
+├── core/        ApiClient (Retrofit+OkHttp، پاکت ok) · TokenStore/DataStore · Fmt
+├── data/        PardavaApi (Retrofit) · dto/ (kotlinx.serialization، همهٔ DTOها tolerant)
 ├── ui/
-│   ├── components/   MainScaffold (تب‌ها) · LanguageSwitchRow
-│   ├── nav/          Routes + NavHost
-│   └── screens/      login · courses · course · lesson · quiz · profile · leaderboard
-└── test/        Fmt · QuizTimer · DTO parsing · auth refresh flow (MockWebServer)
+│   ├── components/   MainScaffold · Components (Loading/Error/Empty/Chips/Settings)
+│   ├── nav/          Routes + NavHost (مهمان‌محور: شروع از MAIN)
+│   └── screens/      courses · course · lesson · leaderboard · profile · login · settings
+└── test/        DtoParsing (JSON واقعی سرور) · UrlNormalization · Fmt
 ```
 
 - **Kotlin 2.0 + Jetpack Compose (Material 3)**، minSdk 24 / targetSdk 35
-- **Media3 ExoPlayer** با SubtitleConfiguration برای زیرنویس VTT امضاشده
-- **DataStore** برای توکن‌ها، **AppCompat per-app locales** برای زبان
-- بدون DI framework (سیم‌کشی دستی ساده) — مناسب ریپوی کوچک و قابل فهم
-- قفل ترتیبی، نمره‌دهی، XP و همهٔ منطق‌های حساس **صرفاً سمت سرور** است؛ اپ فقط نمایش می‌دهد
+- **Coil** برای کاورها، **DataStore** برای نشست/تنظیمات، **AppCompat per-app locales** برای زبان
+- بدون DI framework؛ همهٔ منطق‌های حساس سمت سرور است
+
+## ویژگی‌های v0.9.0
+
+- پخش‌کنندهٔ حرفه‌ای ویدیو (Media3): ادامه از محل قطع، سرعت ۰٫۷۵ تا ۲×، ±۱۰ ثانیه، تمام‌صفحه
+- آزمون پایان دوره با نمره و بهترین رکورد
+- گواهی‌نامهٔ پایان دورهٔ قابل چاپ (مخصوص دوره‌های پولی) + استعلام عمومی
+- امتیاز ستاره‌ای به دوره‌ها برای کاربران واردشده
+- ثبت لاگ نصب و استفادهٔ اندروید در سامانهٔ سایت
+- صفحهٔ دانلود رسمی: https://pardava.ir/app
 
 ## نصب نسخهٔ آماده (APK)
 
-فایل `Pardava-v0.4.1-release.apk` امضاشده‌شده است و روی هر گوشی اندروید ۷ به بالا نصب می‌شود:
+فایل `Pardava-v0.9.0-release.apk` امضاشده است و روی اندروید ۷ به بالا نصب می‌شود؛
+**روی نسخهٔ قبلی هم بدون حذف، مستقیم به‌روزرسانی می‌شود** (امضا یکسان است):
 
-1. فایل را به گوشی منتقل کنید و بازش کنید؛ در پیام «نصب از منابع ناشناس» اجازهٔ نصب را بدهید.
-2. در اولین اجرا روی صفحهٔ ورود دکمهٔ **«آدرس سرور»** را بزنید و نشانی بک‌اند را وارد کنید
-   (مثال شبکهٔ محلی: `http://192.168.1.10:8100/` — برای امنیت کامل در اینترنت از HTTPS استفاده کنید).
-3. شمارهٔ موبایل را وارد کنید؛ در حالت dev سرور، کد تأیید (OTP) در پاسخِ `dev_code` نمایش داده می‌شود.
+1. فایل را به گوشی بدهید و بازش کنید؛ اگر پیام «نصب از منابع ناشناس» آمد،
+   روی **تنظیمات → اجازه از این منبع** بزنید و برگردید و نصب را تأیید کنید.
+2. اگر «Play Protect» هشدار داد: **جزئیات بیشتر → نصب هر نوع (Still install)**.
+   این هشدار برای هر APK خارج از گوگل‌پلی طبیعی است؛ راه حذف کامل آن فقط انتشار از طریق Google Play است.
+3. اگر پیام «برنامه نصب نشد» (App not installed) دیدید:
+   - نسخهٔ 0.4.1 قدیمی را از قبل نصب کرده‌اید؟ اول حذفش کنید (versionCode قدیمی‌تر با امضای متفاوت قفل می‌کند؛ اینجا امضا یکی است، ولی حذفِ نسخه‌های خیلی قدیمی گاهی لازم است)،
+   - فضای خالی گوشی را چک کنید،
+   - APK را کامل دوباره دانلود کنید (دانلود ناقص رایج‌ترین علت است)،
+   - مطمئن شوید معماری گوشی (arm64) پشتیبانی می‌شود — این APK همهٔ ۴ معماری را دارد.
+4. برنامه را باز کنید — دوره‌ها بلافاصله بدون حساب نمایش داده می‌شوند.
 
-> **امضای ریلیز**: فایل `keystore.properties` (gitignored) حاوی مسیر/رمز keystore است؛
+> **امضای ریلیز**: `keystore.properties` (gitignored) مسیر/رمز keystore را نگه می‌دارد؛
 > `pardava-release.keystore` را مثل رمز عبور نگه دارید — بدون آن به‌روزرسانی با همان امضا ممکن نیست.
 
 ## ساخت
 
 ```bash
-# وابستگی‌ها فقط از Maven Central و Google — پروژه به‌صورت پیش‌فرض بدون Firebase هم build می‌شود
+# وابستگی‌ها فقط از Maven Central و Google — بدون google-services.json هم build می‌شود
 ./gradlew assembleDebug
 
-# نسخهٔ ریلیز (اگر keystore.properties موجود باشد، امضاشده ساخته می‌شود)
+# نسخهٔ ریلیز (با keystore.properties امضاشده می‌شود)
 ./gradlew assembleRelease
 
-# تست‌های واحد JVM
+# تست‌ها (شامل پارس JSON واقعیِ captured از سرور زنده)
 ./gradlew testDebugUnitTest
 ```
 
-اتصال به بک‌اند لوکال (emulator): سرور FastAPI روی پورت 8100 بالا بیاید؛
-پیش‌فرض `DEFAULT_BASE_URL` برابر `http://10.0.2.2:8100/` است (10.0.2.2 = loopback میزبان در emulator).
-برای دستگاه واقعی یا سرور واقعی:
+تغییر آدرس پایه در زمان build:
 
 ```bash
-./gradlew assembleDebug -PpardavaBaseUrl=https://lms.pardava.ir/
+./gradlew assembleDebug -PpardavaBaseUrl=https://staging.example.com/
+./gradlew assembleDebug -PpardavaGoogleClientId=XXXXXXXX.apps.googleusercontent.com
 ```
 
-(`10.0.2.2` و `localhost` در `network_security_config.xml` مجاز به HTTP هستند؛ بقیهٔ دامنه‌ها HTTPS.)
+## نقشهٔ ادامه
 
-### فعال‌سازی ورود با گوگل (اختیاری — Firebase)
-
-1. در کنسول Firebase پروژه بسازید و `SHA-1` دیباگ/ریلیز را اضافه کنید.
-2. فایل `google-services.json` را در `app/` بگذارید (در `.gitignore` است و commit نمی‌شود).
-   افزونهٔ `google-services` فقط وقتی این فایل موجود باشد اعمال می‌شود.
-3. Web Client ID سرور را به سرور بدهید (متغیر `GOOGLE_CLIENT_ID` بک‌اند) — اپ، ID Token را به
-   `POST /api/v1/auth/google` می‌فرستد و سرور با JWKS اعتبارسنجی می‌کند.
-
-## CI
-
-`.github/workflows/android-ci.yml` → JDK 17 + Gradle: `assembleDebug` + `testDebugUnitTest`،
-و آپلود APK دیباگ به‌صورت artifact.
-
-## مستندات پلتفرم
-
-معماری کامل، ERD و API در ریپوی اصلی: `github.com/ramazanzadehnazaninzahra-del/pardava`
-(فایل `docs/pardava-lms.md`).
-
----
-
-# Pardava Mobile
-
-The Android app of the **Pardava** bilingual (Persian/English) programming & AI education platform.
-This is a standalone repository talking to the **LMS API** (FastAPI service in the `pardava` repo).
-
-**Platform stage 4 (v0.4.x)** — current app version: `0.4.1`
-
-Highlights: OTP login (Google button ready for the Firebase step) · course catalog with
-**server-enforced sequential lesson locking** · Media3 player with side-loaded WebVTT subtitles ·
-automatic progress reporting every 15s · server-graded quizzes with countdown & auto-submit ·
-XP / levels / streaks / achievements / leaderboards · full fa/en UI with instant RTL/LTR switching ·
-JWT auto-refresh with single-flight rotation and forced re-login on token theft.
-
-Build: `./gradlew assembleDebug testDebugUnitTest` — point the app at a local backend with
-`-PpardavaBaseUrl` (default `http://10.0.2.2:8100/` for the emulator). See the Persian section above
-for the full feature map and architecture.
+- فعال‌سازی ورود گوگل با افزودن `google-services.json` + Web Client ID
+- انتشار در Google Play برای حذف کامل هشدارهای نصب
+- بات بله (Bale) طبق نقشهٔ راه پلتفرم
