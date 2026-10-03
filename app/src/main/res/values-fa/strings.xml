@@ -220,4 +220,22 @@
     <string name="va_error_chat">الان نتوانستم جواب بسازم؛ کمی بعد دوباره تلاش کن</string>
     <string name="va_rate_limited">درخواست‌ها زیاد است؛ چند لحظه صبر کن</string>
     <string name="va_error_generic">مشکلی پیش آمد؛ دوباره تلاش کن</string>
+
+    <!-- Task 24: app parity + design config -->
+    <string name="home_prices">نرخ لحظه‌ای</string>
+    <string name="home_tools">ابزارهای پردآوا</string>
+    <string name="home_news">اخبار فوری</string>
+    <string name="tools_quick">دسترسی سریع</string>
+    <string name="prices_title">نرخ لحظه‌ای</string>
+    <string name="prices_live">زنده</string>
+    <string name="prices_delayed">با تأخیر</string>
+    <string name="prices_updated">به‌روزرسانی: %1$s</string>
+    <string name="ai_chat_title">هوش مصنوعی پردآوا</string>
+    <string name="ai_chat_hint">هر سؤالی داری بپرس…</string>
+    <string name="ai_chat_welcome">دربارهٔ سایت، فناوری، بازار پول و ارز یا هر چیز دیگری بپرس؛ فارسی جواب می‌دهم.</string>
+    <string name="news_title">اخبار</string>
+    <string name="news_load_more">خبرهای بیشتر</string>
+    <string name="news_empty">هنوز خبری منتشر نشده است</string>
+    <string name="news_open_source">مشاهدهٔ منبع</string>
+    <string name="news_no_source">لینک منبع ندارد</string>
 </resources>

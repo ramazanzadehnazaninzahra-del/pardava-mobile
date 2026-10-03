@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import ir.pardava.mobile.core.ApiClient
+import ir.pardava.mobile.core.AppConfigStore
 import ir.pardava.mobile.core.BuildConfigDefault
 import ir.pardava.mobile.core.EventLogger
 import ir.pardava.mobile.core.FontScale
@@ -32,6 +33,8 @@ class PardavaApp : Application() {
     lateinit var api: ApiClient
         private set
     lateinit var logger: EventLogger
+        private set
+    lateinit var appConfig: AppConfigStore
         private set
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -75,9 +78,15 @@ class PardavaApp : Application() {
         api = ApiClient(session, store, debugLogging = BuildConfig.DEBUG)
         logger = EventLogger.get(api, store) { currentLanguage() }
         logger.start(this)
+        appConfig = AppConfigStore(api, store)
         appScope.launch {
             session.restore()
             _signedIn.value = session.isSignedIn
+        }
+        // Server-driven app design: cached first (instant), then fresh fetch.
+        appScope.launch {
+            appConfig.restoreCache()
+            appConfig.refresh()
         }
         // install & session telemetry (site-side customer_events, source=android)
         appScope.launch {

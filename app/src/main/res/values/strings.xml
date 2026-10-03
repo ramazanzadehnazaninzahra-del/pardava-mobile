@@ -220,4 +220,22 @@
     <string name="va_error_chat">I could not build an answer right now; please try again later</string>
     <string name="va_rate_limited">Too many requests; please wait a moment</string>
     <string name="va_error_generic">Something went wrong; please try again</string>
+
+    <!-- Task 24: app parity + design config -->
+    <string name="home_prices">Live rates</string>
+    <string name="home_tools">Pardava tools</string>
+    <string name="home_news">Breaking news</string>
+    <string name="tools_quick">Quick access</string>
+    <string name="prices_title">Live rates</string>
+    <string name="prices_live">Live</string>
+    <string name="prices_delayed">Delayed</string>
+    <string name="prices_updated">Updated: %1$s</string>
+    <string name="ai_chat_title">Pardava AI</string>
+    <string name="ai_chat_hint">Ask me anything…</string>
+    <string name="ai_chat_welcome">Ask about the site, tech, money markets or anything else — I answer in Persian.</string>
+    <string name="news_title">News</string>
+    <string name="news_load_more">Load more</string>
+    <string name="news_empty">No published news yet</string>
+    <string name="news_open_source">Open source</string>
+    <string name="news_no_source">No source link</string>
 </resources>
