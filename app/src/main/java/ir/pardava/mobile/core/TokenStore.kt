@@ -32,6 +32,7 @@ class TokenStore(private val context: Context) {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val FONT_SCALE = stringPreferencesKey("font_scale")
         val INSTALL_ID = stringPreferencesKey("install_id")
+        val APP_CONFIG = stringPreferencesKey("app_config_json")
     }
 
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
@@ -53,6 +54,13 @@ class TokenStore(private val context: Context) {
     val fontScale: Flow<String> = context.dataStore.data.map { p -> p[Keys.FONT_SCALE] ?: FontScale.NORMAL }
 
     val installId: Flow<String> = context.dataStore.data.map { p -> p[Keys.INSTALL_ID] ?: "" }
+
+    /** Last good app-design config JSON (server-driven sections) — offline fallback. */
+    suspend fun appConfigJsonValue(): String? = context.dataStore.data.first()[Keys.APP_CONFIG]
+
+    suspend fun setAppConfigJson(json: String) {
+        context.dataStore.edit { it[Keys.APP_CONFIG] = json }
+    }
 
     suspend fun setInstallId(id: String) {
         context.dataStore.edit { it[Keys.INSTALL_ID] = id }

@@ -648,3 +648,119 @@ data class VoiceAssistantResponse(
     val used: Int? = null,
     val limit: Int? = null,
 ) : Envelope
+
+/* ---------------- app design config (https://pardava.ir/api/mobile/app-config) ---------------- */
+
+/**
+ * One app section served by the admin «دیزاین اپ» panel. `kind` is "native"
+ * (own Compose screen) or "web" (in-app WebView of the site page in [url]).
+ */
+@Serializable
+data class AppSectionDto(
+    val key: String? = null,
+    val title: String? = null,
+    val icon: String? = null,
+    val kind: String? = null,
+    val url: String? = null,
+)
+
+@Serializable
+data class AppConfigResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    /** تب‌های نوار پایین — فقط فعال‌ها، مرتب‌شده */
+    val tabs: List<AppSectionDto> = emptyList(),
+    /** بلوک‌های صفحهٔ خانه — فقط فعال‌ها، مرتب‌شده */
+    val home: List<AppSectionDto> = emptyList(),
+    /** ابزارها (نیتیو/وب) — فقط فعال‌ها، مرتب‌شده */
+    val tools: List<AppSectionDto> = emptyList(),
+    @SerialName("updatedAt") val updatedAt: String? = null,
+) : Envelope
+
+/* ---------------- prices (https://pardava.ir/api/prices) ---------------- */
+
+@Serializable
+data class PriceItemDto(
+    val key: String? = null,
+    val group: String? = null,
+    val code: String? = null,
+    val fa: String? = null,
+    @SerialName("unit_fa") val unitFa: String? = null,
+    val toman: Long? = null,
+    val change_percent: Double? = null,
+    val dir: String? = null, // up | down | flat
+    val source: String? = null,
+    val featured: Int? = null,
+)
+
+@Serializable
+data class PricesResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("usd_toman") val usdToman: Long? = null,
+    val items: List<PriceItemDto> = emptyList(),
+    val live: Boolean? = null,
+) : Envelope
+
+/* ---------------- Persian-friendly news (https://pardava.ir/api/mobile/news) ---------------- */
+
+@Serializable
+data class MobileNewsItemDto(
+    val id: Long? = null,
+    val title: String? = null,
+    @SerialName("titleFa") val titleFa: String? = null,
+    val description: String? = null,
+    @SerialName("descriptionFa") val descriptionFa: String? = null,
+    val link: String? = null,
+    @SerialName("datePublished") val datePublished: String? = null,
+    @SerialName("sourceFeed") val sourceFeed: String? = null,
+    @SerialName("imageUrl") val imageUrl: String? = null,
+) {
+    /** عنوان نمایشی — ترجمهٔ فارسی اگر موجود باشد، وگرنه عنوان اصلی. */
+    val displayTitle: String
+        get() = titleFa?.takeIf { it.isNotBlank() } ?: title.orEmpty()
+
+    /** توضیح نمایشی — اولویت با ترجمهٔ فارسی. */
+    val displayDescription: String
+        get() = descriptionFa?.takeIf { it.isNotBlank() } ?: description.orEmpty()
+}
+
+@Serializable
+data class MobileNewsResponse(
+    override val ok: Boolean? = true,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val count: Int? = null,
+    val items: List<MobileNewsItemDto> = emptyList(),
+) : Envelope
+
+/* ---------------- site AI chat (https://pardava.ir/api/ai-chat) ---------------- */
+
+@Serializable
+data class AiMessageIn(val role: String, val content: String)
+
+@Serializable
+data class AiChatIn(
+    val messages: List<AiMessageIn>,
+    @SerialName("max_new_tokens") val maxNewTokens: Int? = null,
+)
+
+/**
+ * ‎/api/ai-chat پاکت استاندارد ندارد: موفق = {"response": "..."} و خطا = HTTP 4xx/5xx
+ * با بدنهٔ {"error": "..."}؛ پس ok را خودمان نال‌پذیر نگه می‌داریم و requireOk
+ * هرگز روی آن false نمی‌بیند (خطای HTTP در ViewModel هندل می‌شود).
+ */
+@Serializable
+data class AiChatOut(
+    override val ok: Boolean? = null,
+    override val code: Int? = null,
+    override val error: String? = null,
+    override val action: String? = null,
+    val response: String? = null,
+) : Envelope

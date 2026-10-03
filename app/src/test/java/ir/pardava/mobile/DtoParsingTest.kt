@@ -2,14 +2,18 @@ package ir.pardava.mobile
 
 import ir.pardava.mobile.core.BuildConfigDefault
 import ir.pardava.mobile.core.SessionManager
+import ir.pardava.mobile.data.dto.AiChatOut
 import ir.pardava.mobile.data.dto.ApiException
+import ir.pardava.mobile.data.dto.AppConfigResponse
 import ir.pardava.mobile.data.dto.CourseDetailResponse
 import ir.pardava.mobile.data.dto.CoursesListResponse
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LeagueResponse
 import ir.pardava.mobile.data.dto.LearningResponse
 import ir.pardava.mobile.data.dto.MeResponse
+import ir.pardava.mobile.data.dto.MobileNewsResponse
 import ir.pardava.mobile.data.dto.OtpRequestResponse
+import ir.pardava.mobile.data.dto.PricesResponse
 import ir.pardava.mobile.data.dto.ProgressResponse
 import ir.pardava.mobile.data.dto.ProgressSaveResponse
 import ir.pardava.mobile.data.dto.QuizDetailResponse
@@ -276,6 +280,96 @@ class DtoParsingTest {
         val parsed = json.decodeFromString(ProgressSaveResponse.serializer(), body)
         assertNull(parsed.completed)
         assertNull(parsed.points)
+    }
+}
+
+class AppParityDtoTest {
+
+    private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; isLenient = true; coerceInputValues = true }
+
+    @Test
+    fun `app config parses groups and order`() {
+        val body = """
+            {"ok":true,
+             "tabs":[{"key":"tab_home","title":"خانه","icon":"home","kind":"native","url":""},
+                     {"key":"tab_courses","title":"دوره‌ها","icon":"school","kind":"native","url":""}],
+             "home":[{"key":"home_prices","title":"نرخ لحظه‌ای","icon":"candlestick_chart","kind":"native","url":""}],
+             "tools":[{"key":"tool_prices","title":"قیمت لحظه‌ای","icon":"candlestick_chart","kind":"native","url":""},
+                      {"key":"tool_hoquqyar","title":"حقوق‌یار","icon":"balance","kind":"web","url":"/hoquqyar"}],
+             "updatedAt":"2026-10-03 10:00:00"}
+        """.trimIndent()
+        val parsed = json.decodeFromString(AppConfigResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertEquals(2, parsed.tabs.size)
+        assertEquals("tab_home", parsed.tabs.first().key)
+        assertEquals(1, parsed.home.size)
+        assertEquals(2, parsed.tools.size)
+        assertEquals("/hoquqyar", parsed.tools.last().url)
+        assertEquals("2026-10-03 10:00:00", parsed.updatedAt)
+    }
+
+    @Test
+    fun `app config tolerates extra unknown keys`() {
+        val body = """{"ok":true,"tabs":[],"home":[],"tools":[],"newField":123}"""
+        val parsed = json.decodeFromString(AppConfigResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertTrue(parsed.tabs.isEmpty())
+    }
+
+    @Test
+    fun `prices parse amounts and directions`() {
+        val body = """
+            {"ok":true,"updated_at":"2026-10-01T20:46:11Z","usd_toman":258465,
+             "items":[{"key":"usd","group":"currency","fa":"دلار آمریکا","unit_fa":"هر دلار",
+                       "toman":258465,"change_percent":1.24,"dir":"up","featured":1},
+                      {"key":"gold18","group":"gold","fa":"طلای ۱۸ عیار","toman":25694400,
+                       "change_percent":-0.4,"dir":"down"}],
+             "live":true}
+        """.trimIndent()
+        val parsed = json.decodeFromString(PricesResponse.serializer(), body)
+        assertTrue(parsed.ok == true)
+        assertEquals(258465L, parsed.usdToman)
+        assertEquals(2, parsed.items.size)
+        assertEquals("up", parsed.items[0].dir)
+        assertEquals(1.24, parsed.items[0].change_percent!!, 0.0001)
+        assertEquals("طلای ۱۸ عیار", parsed.items[1].fa)
+        assertTrue(parsed.live == true)
+    }
+
+    @Test
+    fun `news prefers farsi display fields`() {
+        val body = """
+            {"ok":true,"count":1,"items":[
+              {"id":7,"title":"Tech deal","titleFa":"معاملهٔ فناوری",
+               "description":"desc","descriptionFa":"توضیح",
+               "link":"https://example.com/7","datePublished":"Mon, 01 Oct 2026",
+               "sourceFeed":"https://www.reuters.com/rss","imageUrl":"https://img.example/1.jpg"}]}
+        """.trimIndent()
+        val parsed = json.decodeFromString(MobileNewsResponse.serializer(), body)
+        val item = parsed.items.single()
+        assertEquals("معاملهٔ فناوری", item.displayTitle)
+        assertEquals("توضیح", item.displayDescription)
+    }
+
+    @Test
+    fun `news falls back to english when no farsi`() {
+        val body = """
+            {"ok":true,"count":1,"items":[{"id":8,"title":"Oil rises","description":"d","link":"https://e.com/8"}]}
+        """.trimIndent()
+        val parsed = json.decodeFromString(MobileNewsResponse.serializer(), body)
+        val item = parsed.items.single()
+        assertEquals("Oil rises", item.displayTitle)
+        assertNull(item.titleFa)
+        assertNull(item.imageUrl)
+    }
+
+    @Test
+    fun `ai chat out has no ok envelope requirement`() {
+        val ok = json.decodeFromString(AiChatOut.serializer(), """{"response":"سلام"}""")
+        assertEquals("سلام", ok.response)
+        assertNull(ok.ok) // requireOk روی null خطا نمی‌دهد
+        val err = json.decodeFromString(AiChatOut.serializer(), """{"error":"Too many"}""")
+        assertEquals("Too many", err.error)
     }
 }
 

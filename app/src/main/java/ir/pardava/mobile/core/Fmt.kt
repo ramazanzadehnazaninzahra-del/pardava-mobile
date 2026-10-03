@@ -20,6 +20,16 @@ object Fmt {
 
     fun int(value: Int, lang: String): String = digits(value.toString(), lang)
 
+    /** Thousands-grouped amount (۲۵۸,۴۶۵) — localized digits. */
+    fun amount(value: Long, lang: String): String =
+        digits(String.format(Locale.US, "%,d", value), lang)
+
+    /** Signed one-decimal percent (+1.2٪ / -0.8٪ / 0.0٪) — Persian percent sign in fa. */
+    fun percent(value: Double): String {
+        val text = String.format(Locale.US, "%+.1f%%", value)
+        return if (text == "+0.0%") "0.0%" else text
+    }
+
     /** `mm:ss` (or `h:mm:ss` beyond one hour), localized. */
     fun duration(totalSeconds: Int, lang: String): String {
         val s = totalSeconds.coerceAtLeast(0)

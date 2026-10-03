@@ -27,15 +27,19 @@ import androidx.navigation.navArgument
 import ir.pardava.mobile.PardavaApp
 import ir.pardava.mobile.R
 import ir.pardava.mobile.core.UpdateManager
+import ir.pardava.mobile.data.dto.AppSectionDto
 import ir.pardava.mobile.data.dto.ExchangeCodeIn
 import ir.pardava.mobile.ui.components.MainScaffold
 import ir.pardava.mobile.ui.components.UpdateDialog
+import ir.pardava.mobile.ui.screens.aichat.AiChatScreen
 import ir.pardava.mobile.ui.screens.articles.ArticleReaderScreen
 import ir.pardava.mobile.ui.screens.chat.ChatScreen
 import ir.pardava.mobile.ui.screens.course.CourseScreen
 import ir.pardava.mobile.ui.screens.leaderboard.LeaderboardScreen
 import ir.pardava.mobile.ui.screens.lesson.LessonScreen
 import ir.pardava.mobile.ui.screens.login.LoginScreen
+import ir.pardava.mobile.ui.screens.news.NewsScreen
+import ir.pardava.mobile.ui.screens.prices.PricesScreen
 import ir.pardava.mobile.ui.screens.settings.SettingsScreen
 import ir.pardava.mobile.ui.screens.voice.VoiceAssistantScreen
 import ir.pardava.mobile.ui.screens.web.WebScreen
@@ -54,6 +58,9 @@ object Routes {
     const val CERT = "cert/{slug}"
     const val CHAT = "chat"
     const val VOICE_ASSISTANT = "voice_assistant"
+    const val PRICES = "prices"
+    const val AI_CHAT = "ai_chat"
+    const val NEWS = "news"
 
     fun course(slug: String) = "course/$slug"
     fun lesson(slug: String, lessonId: Long) = "lesson/$slug/$lessonId"
@@ -163,6 +170,10 @@ fun PardavaNav(app: PardavaApp) {
                     onOpenLogin = { nav.navigate(Routes.LOGIN) },
                     onOpenChat = { nav.navigate(Routes.CHAT) },
                     onOpenVoiceAssistant = { nav.navigate(Routes.VOICE_ASSISTANT) },
+                    onOpenPrices = { nav.navigate(Routes.PRICES) },
+                    onOpenAiChat = { nav.navigate(Routes.AI_CHAT) },
+                    onOpenNews = { nav.navigate(Routes.NEWS) },
+                    onOpenTool = { tool -> openTool(nav, app, tool) },
                 )
             }
 
@@ -198,6 +209,18 @@ fun PardavaNav(app: PardavaApp) {
                     app = app,
                     onBack = { nav.popBackStack() },
                 )
+            }
+
+            composable(Routes.PRICES) {
+                PricesScreen(app = app, onBack = { nav.popBackStack() })
+            }
+
+            composable(Routes.AI_CHAT) {
+                AiChatScreen(app = app, onBack = { nav.popBackStack() })
+            }
+
+            composable(Routes.NEWS) {
+                NewsScreen(app = app, onBack = { nav.popBackStack() })
             }
 
             composable(
@@ -290,5 +313,27 @@ fun PardavaNav(app: PardavaApp) {
         }
         nav.addOnDestinationChangedListener(listener)
         onDispose { nav.removeOnDestinationChangedListener(listener) }
+    }
+}
+
+/**
+ * مسیریابی ابزارها: کلیدهای نیتیو به صفحهٔ اختصاصی اپ می‌روند و بقیه
+ * (ابزارهای وب سفارشی/پیش‌فرض) همان صفحهٔ سایت را در WebView اپ باز می‌کنند.
+ */
+private fun openTool(
+    nav: androidx.navigation.NavHostController,
+    app: PardavaApp,
+    tool: AppSectionDto,
+) {
+    when (tool.key) {
+        "tool_prices" -> nav.navigate(Routes.PRICES)
+        "tool_ai_chat" -> nav.navigate(Routes.AI_CHAT)
+        "tool_news" -> nav.navigate(Routes.NEWS)
+        else -> {
+            val url = tool.url
+            if (!url.isNullOrBlank()) {
+                nav.navigate(Routes.web(tool.title ?: "پردآوا", app.siteUrl(url)))
+            }
+        }
     }
 }

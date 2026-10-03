@@ -1,6 +1,9 @@
 package ir.pardava.mobile.data
 
+import ir.pardava.mobile.data.dto.AiChatIn
+import ir.pardava.mobile.data.dto.AiChatOut
 import ir.pardava.mobile.data.dto.AppLogBatchIn
+import ir.pardava.mobile.data.dto.AppConfigResponse
 import ir.pardava.mobile.data.dto.ArticleDetailResponse
 import ir.pardava.mobile.data.dto.ArticlesResponse
 import ir.pardava.mobile.data.dto.CancelAuthIn
@@ -16,9 +19,11 @@ import ir.pardava.mobile.data.dto.LearningResponse
 import ir.pardava.mobile.data.dto.LessonContentResponse
 import ir.pardava.mobile.data.dto.LoginIn
 import ir.pardava.mobile.data.dto.MeResponse
+import ir.pardava.mobile.data.dto.MobileNewsResponse
 import ir.pardava.mobile.data.dto.OtpRequestIn
 import ir.pardava.mobile.data.dto.OtpRequestResponse
 import ir.pardava.mobile.data.dto.OtpVerifyIn
+import ir.pardava.mobile.data.dto.PricesResponse
 import ir.pardava.mobile.data.dto.ProgressResponse
 import ir.pardava.mobile.data.dto.ProgressSaveResponse
 import ir.pardava.mobile.data.dto.QuizDetailResponse
@@ -196,4 +201,29 @@ interface PardavaApi {
         @Part file: MultipartBody.Part?,
         @Part("text") text: RequestBody?,
     ): VoiceAssistantResponse
+
+    /* ---- app design config + site-parity features (Task 24) ---- */
+
+    /** بخش‌های فعال اپ (تب‌ها/بلوک‌های خانه/ابزارها) — کنترل از پنل دیزاین اپ. */
+    @GET("api/mobile/app-config")
+    suspend fun appConfig(): AppConfigResponse
+
+    /** قیمت لحظه‌ای طلا/ارز/انرژی/رمزارز — همان منبع صفحهٔ /prices سایت. */
+    @GET("api/prices")
+    suspend fun prices(): PricesResponse
+
+    /** اخبار منتشرشده با اولویت عنوان/توضیح فارسی. */
+    @GET("api/mobile/news")
+    suspend fun mobileNews(
+        @Query("limit") limit: Int = 24,
+        @Query("offset") offset: Int = 0,
+    ): MobileNewsResponse
+
+    /**
+     * چت هوش مصنوعی سایت (مهمان هم مجاز است). این اندپوینت پاکت ندارد:
+     * موفق {"response":…} و خطا HTTP 4xx/5xx با {"error":…} — ViewModel خطا را
+     * از بدنهٔ HTTP می‌خواند.
+     */
+    @POST("api/ai-chat")
+    suspend fun aiChat(@Body body: AiChatIn): AiChatOut
 }
